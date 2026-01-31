@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<h1 class="text-2xl font-bold p-4 bg-red-600 text-white">
+Admin Dashboard
+</h1>
+
+<div class="p-4">
+
+<h2 class="font-bold mb-2">Add Menu Item</h2>
+
+<input id="name" placeholder="Item Name" class="border p-2 mb-2 w-full">
+<input id="price" placeholder="Price" class="border p-2 mb-2 w-full">
+<input id="category" placeholder="Category" class="border p-2 mb-2 w-full">
+
+<button onclick="addItem()"
+class="bg-green-600 text-white px-4 py-2 rounded">
+Add Item
+</button>
+
+<h2 class="font-bold mt-6 mb-2">Home Page Offer</h2>
+
+<input id="offerText" placeholder="New Offer"
+class="border p-2 w-full mb-2">
+
+<button onclick="updateOffer()"
+class="bg-blue-600 text-white px-4 py-2 rounded">
+Update Offer
+</button>
+
+</div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

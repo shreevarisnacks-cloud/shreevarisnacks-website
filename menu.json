@@ -1,0 +1,9 @@
+
+[
+{"name":"Corn Pizza","price":130,"category":"Pizza"},
+{"name":"Veg Burger","price":50,"category":"Burger"},
+{"name":"Veg Sandwich","price":60,"category":"Sandwich"},
+{"name":"Chocolate Milkshake","price":90,"category":"Milkshake"},
+{"name":"Virgin Mojito","price":100,"category":"Mocktail"},
+{"name":"Veg Maggie","price":70,"category":"Maggie"}
+]
