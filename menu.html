@@ -8,9 +8,62 @@
 <body class="bg-gray-100">
 
 <h1 class="text-3xl text-center font-bold p-4">Our Menu</h1>
+<div id="menuList"></div>
 
 <div id="menu" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 
 <script src="js/menu.js"></script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
+  authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
+  projectId: "shreevarisnacks-45d0d",
+  storageBucket: "shreevarisnacks-45d0d.firebasestorage.app",
+  messagingSenderId: "834301462418",
+  appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+const menuDiv = document.getElementById("menuList");
+
+async function loadMenu() {
+
+  const snap = await getDocs(collection(db, "menu"));
+
+  menuDiv.innerHTML = "";
+
+  snap.forEach(doc => {
+
+    const d = doc.data();
+
+    menuDiv.innerHTML += `
+
+      <div class="menu-card">
+
+        <img src="${d.image}" width="150"><br>
+
+        <h3>${d.name}</h3>
+
+        <p>₹${d.price}</p>
+
+        <small>${d.category}</small>
+
+      </div>
+
+    `;
+  });
+}
+
+loadMenu();
+
+</script>
+
 </body>
 </html>
