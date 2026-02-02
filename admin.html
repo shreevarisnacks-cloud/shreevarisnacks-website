@@ -67,8 +67,24 @@ class="bg-blue-600 text-white px-4 py-2 rounded">
 Update Offer
 </button>
 
+<button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded">
+  Logout
+</button>
+
 </div>
 
 <script src="js/admin.js"></script>
+<script type="module">
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const auth = getAuth();
+
+window.logout = function () {
+  signOut(auth).then(() => {
+    window.location.href = "login.html";
+  });
+};
+</script>
+
 </body>
 </html>
