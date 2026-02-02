@@ -44,6 +44,37 @@ firebase.auth().onAuthStateChanged(user => {
 Admin Dashboard
 </h1>
 
+<h2 class="text-2xl font-bold mb-4">Manage Menu</h2>
+
+<form id="menuForm" class="space-y-3 max-w-md">
+
+  <input id="name" placeholder="Item Name" class="border p-2 w-full" required>
+
+  <input id="price" type="number" placeholder="Price" class="border p-2 w-full" required>
+
+  <select id="category" class="border p-2 w-full">
+    <option>pizza</option>
+    <option>burger</option>
+    <option>sandwich</option>
+    <option>milkshake</option>
+    <option>mocktail</option>
+    <option>maggie</option>
+    <option>more</option>
+  </select>
+
+  <input type="file" id="image" accept="image/*">
+
+  <button class="bg-green-600 text-white px-4 py-2 rounded">
+    Save Item
+  </button>
+
+</form>
+
+<hr class="my-6">
+
+<div id="menuList"></div>
+
+
 <div class="p-4">
 
 <h2 class="font-bold mb-2">Add Menu Item</h2>
@@ -74,6 +105,88 @@ Update Offer
 </div>
 
 <script src="js/admin.js"></script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
+  authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
+  projectId: "shreevarisnacks-45d0d",
+  storageBucket: "shreevarisnacks-45d0d.firebasestorage.app",
+  messagingSenderId: "834301462418",
+  appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+const form = document.getElementById("menuForm");
+const list = document.getElementById("menuList");
+
+// Add Item
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = nameInput.value;
+  const price = priceInput.value;
+  const category = categoryInput.value;
+  const file = image.files[0];
+
+  let imageUrl = "";
+
+  if (file) {
+    const imgRef = ref(storage, "menu/" + Date.now());
+    await uploadBytes(imgRef, file);
+    imageUrl = await getDownloadURL(imgRef);
+  }
+
+  await addDoc(collection(db, "menu"), {
+    name,
+    price: Number(price),
+    category,
+    image: imageUrl
+  });
+
+  form.reset();
+  loadMenu();
+});
+
+// Load Items
+async function loadMenu() {
+
+  list.innerHTML = "";
+
+  const snap = await getDocs(collection(db, "menu"));
+
+  snap.forEach((docu) => {
+
+    const d = docu.data();
+
+    list.innerHTML += `
+      <div class="border p-3 mb-2 flex justify-between">
+        <div>
+          <b>${d.name}</b> - ₹${d.price} (${d.category})
+        </div>
+        <button onclick="deleteItem('${docu.id}')" 
+          class="text-red-600">Delete</button>
+      </div>
+    `;
+  });
+}
+
+window.deleteItem = async (id) => {
+  await deleteDoc(doc(db, "menu", id));
+  loadMenu();
+};
+
+loadMenu();
+
+</script>
+
 <script type="module">
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
