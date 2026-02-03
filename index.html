@@ -4,6 +4,31 @@
 <head>
 <title>Shreevari Snacks</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+import { getFirestore, doc, getDoc }
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const db = getFirestore();
+
+async function loadOffer(){
+
+  const snap = await getDoc(doc(db,"offers","homeOffer"));
+
+  if(snap.exists()){
+
+    const data = snap.data();
+
+    if(data.active){
+
+      const box = document.getElementById("offerBox");
+      box.innerText = data.text;
+      box.classList.remove("hidden");
+    }
+  }
+}
+
+loadOffer();
+</script>
 </head>
 <body class="bg-gray-100">
 
@@ -26,7 +51,8 @@ class="bg-green-500 text-white px-6 py-3 rounded">
 Order on WhatsApp
 </a>
 
-<div id="offer" class="mt-6 bg-yellow-200 p-4 rounded"></div>
+<div id="offerBox"
+class="bg-yellow-300 text-black p-4 text-center text-xl font-bold hidden">
 </div>
 
 <script src="js/main.js"></script>
