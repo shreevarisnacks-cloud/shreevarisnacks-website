@@ -1,338 +1,253 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Firebase -->
-  <script type="module" defer>
-
-    /* ---------------- CONFIG ---------------- */
-
-    import { initializeApp } from
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-    import {
-      getAuth,
-      onAuthStateChanged,
-      signOut
-    } from
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      deleteDoc,
-      doc,
-      updateDoc,
-      setDoc
-    } from
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
-      authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
-      projectId: "shreevarisnacks-45d0d",
-      storageBucket: "shreevarisnacks-45d0d.appspot.com",
-      messagingSenderId: "834301462418",
-      appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
-    };
-
-
-    /* ---------------- INIT ---------------- */
-
-    const app = initializeApp(firebaseConfig);
-
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-
-    /* ---------------- AUTH PROTECT ---------------- */
-
-    onAuthStateChanged(auth, (user) => {
-
-      if (!user) {
-        window.location.href = "login.html";
-      }
-
-    });
-
-
-    /* ---------------- ADD ITEM ---------------- */
-
-    const form = document.getElementById("menuForm");
-    const list = document.getElementById("menuList");
-
-
-    form.addEventListener("submit", async (e) => {
-
-      e.preventDefault();
-
-      const name = document.getElementById("name").value.trim();
-      const price = document.getElementById("price").value;
-      const category = document.getElementById("category").value;
-
-      if (!name || !price) {
-        alert("Fill all fields");
-        return;
-      }
-
-      try {
-
-        await addDoc(collection(db, "menu"), {
-
-          name: name,
-          price: Number(price),
-          category: category,
-          created: new Date()
-
-        });
-
-        alert("Item Added ✅");
-
-        form.reset();
-        loadMenu();
-
-      }
-      catch (err) {
-        alert(err.message);
-      }
-
-    });
-
-
-    /* ---------------- LOAD MENU ---------------- */
-
-    async function loadMenu() {
-
-      list.innerHTML = "";
-
-      const snap = await getDocs(collection(db, "menu"));
-
-      snap.forEach((docu) => {
-
-        const d = docu.data();
-
-        list.innerHTML += `
-
-        <div class="border p-3 mb-2 flex justify-between items-center">
-
-          <div>
-            <b>${d.name}</b><br>
-            ₹${d.price} | ${d.category}
-          </div>
-
-          <div class="space-x-2">
-
-            <button
-              onclick="editPrice('${docu.id}', ${d.price})"
-              class="bg-blue-600 text-white px-2 py-1 rounded">
-              Edit
-            </button>
-
-            <button
-              onclick="deleteItem('${docu.id}')"
-              class="bg-red-600 text-white px-2 py-1 rounded">
-              Delete
-            </button>
-
-          </div>
-
-        </div>
-        `;
-
-      });
-
-    }
-
-
-    /* ---------------- EDIT PRICE ---------------- */
-
-    window.editPrice = async function (id, oldPrice) => {
-
-      const newPrice = prompt("Enter new price", oldPrice);
-
-      if (!newPrice) return;
-
-      try {
-
-        await updateDoc(doc(db, "menu", id), {
-          price: Number(newPrice)
-        });
-
-        alert("Price Updated ✅");
-
-        loadMenu();
-
-      }
-      catch (e) {
-        alert(e.message);
-      }
-
-    };
-
-
-    /* ---------------- DELETE ---------------- */
-
-    window.deleteItem = async (id) => {
-
-      if (!confirm("Delete item?")) return;
-
-      await deleteDoc(doc(db, "menu", id));
-
-      loadMenu();
-
-    };
-
-
-    /* ---------------- OFFER ---------------- */
-
-    window.updateOffer = async function () {
-
-      const text = document.getElementById("offerText").value;
-
-      if (!text) {
-        alert("Enter offer");
-        return;
-      }
-
-      try {
-
-      await setDoc(doc(db, "offers", "homeOffer"), {
-
-        text: text,
-        active: true,
-        time: Date.now()
-
-      });
-
-      alert("Offer Updated ✅ Refresh home page to see changes");
-      } catch (e) {
-      alert(e.message);
-      }
-
-    };
-
-
-    /* ---------------- LOGOUT ---------------- */
-
-    window.logout = async () => {
-
-      await signOut(auth);
-
-      window.location.href = "login.html";
-
-    };
-
-
-    /* ---------------- START ---------------- */
-
-    loadMenu();
-
-  </script>
-
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-
-
 
 <body class="bg-gray-100">
 
-
-<!-- HEADER -->
-
-<h1 class="text-2xl font-bold p-4 bg-red-600 text-white">
-  Admin Dashboard
+<h1 class="bg-red-600 text-white p-4 text-xl font-bold">
+Shreevari Snacks Admin
 </h1>
-
 
 <div class="p-4 max-w-xl mx-auto">
 
+<!-- ADD ITEM -->
+<h2 class="font-bold text-lg mb-2">Add Item</h2>
 
-<!-- ADD MENU -->
+<form id="menuForm" class="space-y-2">
 
-<h2 class="text-xl font-bold mb-3">Add Menu Item</h2>
+<input id="name" placeholder="Item Name" class="border p-2 w-full">
+<input id="price" type="number" placeholder="Price" class="border p-2 w-full">
 
-<form id="menuForm" class="space-y-3">
+<select id="category" class="border p-2 w-full">
+<option>pizza</option>
+<option>burger</option>
+<option>sandwich</option>
+<option>milkshake</option>
+<option>mocktail</option>
+<option>maggie</option>
+<option>more</option>
+</select>
 
-  <input id="name" placeholder="Item Name"
-    class="border p-2 w-full" required>
-
-  <input id="price" type="number" placeholder="Price"
-    class="border p-2 w-full" required>
-
-  <select id="category" class="border p-2 w-full">
-
-    <option>pizza</option>
-    <option>burger</option>
-    <option>sandwich</option>
-    <option>milkshake</option>
-    <option>mocktail</option>
-    <option>maggie</option>
-    <option>more</option>
-
-  </select>
-
-  <button
-    class="bg-green-600 text-white px-4 py-2 rounded w-full">
-
-    Save Item
-
-  </button>
+<button class="bg-green-600 text-white w-full p-2">
+Add Item
+</button>
 
 </form>
 
+<hr class="my-4">
 
-<hr class="my-6">
-
-
-<!-- MENU LIST -->
-
-<h2 class="text-xl font-bold mb-3">Menu List</h2>
-
+<!-- MENU -->
+<h2 class="font-bold text-lg mb-2">Menu</h2>
 <div id="menuList"></div>
 
-
-<hr class="my-6">
-
+<hr class="my-4">
 
 <!-- OFFER -->
+<h2 class="font-bold text-lg mb-2">Home Offer</h2>
 
-<h2 class="text-xl font-bold mb-3">Home Offer</h2>
+<input id="offerText" class="border p-2 w-full mb-2"
+placeholder="Enter Offer">
 
-<input
-  id="offerText"
-  placeholder="Enter Offer"
-  class="border p-2 w-full mb-2">
-
-<button
-  onclick="updateOffer()"
-  class="bg-blue-600 text-white px-4 py-2 rounded w-full">
-
-  Update Offer
-
+<button onclick="updateOffer()"
+class="bg-blue-600 text-white w-full p-2">
+Update Offer
 </button>
 
+<hr class="my-4">
 
-<hr class="my-6">
-
-
-<!-- LOGOUT -->
-
-<button
-  onclick="logout()"
-  class="bg-red-600 text-white px-4 py-2 rounded w-full">
-
-  Logout
-
+<button onclick="logout()"
+class="bg-red-600 text-white w-full p-2">
+Logout
 </button>
-
 
 </div>
+
+<!-- FIREBASE SCRIPT -->
+<script type="module">
+
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import {
+getFirestore,
+collection,
+addDoc,
+getDocs,
+doc,
+updateDoc,
+deleteDoc,
+setDoc
+} from
+"https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import {
+getAuth,
+onAuthStateChanged,
+signOut
+} from
+"https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+
+const firebaseConfig = {
+apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
+authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
+projectId: "shreevarisnacks-45d0d",
+messagingSenderId: "834301462418",
+appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+
+/* LOGIN CHECK */
+onAuthStateChanged(auth, user => {
+if(!user){
+location.href="login.html";
+}
+});
+
+
+/* ELEMENTS */
+const form = document.getElementById("menuForm");
+const list = document.getElementById("menuList");
+
+
+/* ADD ITEM */
+form.addEventListener("submit", async e=>{
+
+e.preventDefault();
+
+const name = document.getElementById("name").value;
+const price = document.getElementById("price").value;
+const cat = document.getElementById("category").value;
+
+if(!name || !price){
+alert("Fill all fields");
+return;
+}
+
+await addDoc(collection(db,"menu"),{
+name,
+price:Number(price),
+category:cat
+});
+
+alert("Added");
+
+form.reset();
+loadMenu();
+
+});
+
+
+/* LOAD MENU */
+async function loadMenu(){
+
+list.innerHTML="";
+
+const snap = await getDocs(collection(db,"menu"));
+
+snap.forEach(d=>{
+
+const i = d.data();
+
+list.innerHTML+=`
+
+<div class="border p-2 mb-2 flex justify-between">
+
+<div>
+<b>${i.name}</b><br>
+₹${i.price} | ${i.category}
+</div>
+
+<div>
+<button onclick="editPrice('${d.id}',${i.price})"
+class="bg-blue-500 text-white px-2">Edit</button>
+
+<button onclick="deleteItem('${d.id}')"
+class="bg-red-500 text-white px-2 ml-1">X</button>
+</div>
+
+</div>
+
+`;
+
+});
+
+}
+
+
+/* EDIT */
+window.editPrice = async (id,old)=>{
+
+const p = prompt("New Price",old);
+
+if(!p) return;
+
+await updateDoc(doc(db,"menu",id),{
+price:Number(p)
+});
+
+alert("Updated");
+
+loadMenu();
+
+};
+
+
+/* DELETE */
+window.deleteItem = async id=>{
+
+if(!confirm("Delete?")) return;
+
+await deleteDoc(doc(db,"menu",id));
+
+loadMenu();
+
+};
+
+
+/* OFFER */
+window.updateOffer = async ()=>{
+
+const t = document.getElementById("offerText").value;
+
+if(!t){
+alert("Enter offer");
+return;
+}
+
+await setDoc(doc(db,"offers","homeOffer"),{
+text:t,
+active:true,
+time:Date.now()
+});
+
+alert("Offer Updated");
+
+};
+
+
+/* LOGOUT */
+window.logout = ()=>{
+
+signOut(auth).then(()=>{
+location.href="login.html";
+});
+
+};
+
+
+loadMenu();
+
+</script>
 
 </body>
 </html>
