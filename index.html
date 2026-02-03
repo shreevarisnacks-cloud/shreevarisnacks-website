@@ -4,31 +4,45 @@
 <head>
 <title>Shreevari Snacks</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-import { getFirestore, doc, getDoc }
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+<script type="module">
 
-const db = getFirestore();
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-async function loadOffer(){
+const firebaseConfig = {
+  apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
+  authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
+  projectId: "shreevarisnacks-45d0d",
+  storageBucket: "shreevarisnacks-45d0d.appspot.com",
+  messagingSenderId: "834301462418",
+  appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
+};
 
-  const snap = await getDoc(doc(db,"offers","homeOffer"));
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  if(snap.exists()){
+async function loadOffer() {
 
-    const data = snap.data();
+  try {
 
-    if(data.active){
+    const snap = await getDoc(doc(db, "offers", "main"));
 
-      const box = document.getElementById("offerBox");
-      box.innerText = data.text;
-      box.classList.remove("hidden");
+    if (snap.exists()) {
+      document.getElementById("offerBanner").innerText =
+        snap.data().text;
+    } else {
+      document.getElementById("offerBanner").style.display = "none";
     }
+
+  } catch (e) {
+    console.log("Offer error:", e);
   }
 }
 
 loadOffer();
+
 </script>
+
 </head>
 <body class="bg-gray-100">
 
@@ -46,14 +60,16 @@ Shreevari Snacks
 <div class="p-6 text-center">
 <h1 class="text-3xl font-bold mb-4">Welcome to Shreevari Snacks</h1>
 
+<div id="offerBanner"
+     class="bg-yellow-400 text-black p-3 text-center font-bold">
+  Loading offer...
+</div>
+
+
 <a href="https://wa.me/c/919844572129" target="_blank"
 class="bg-green-500 text-white px-6 py-3 rounded">
 Order on WhatsApp
 </a>
-
-<div id="offerBox"
-class="bg-yellow-300 text-black p-4 text-center text-xl font-bold hidden">
-</div>
 
 <script src="js/main.js"></script>
 </body>
