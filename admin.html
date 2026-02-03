@@ -207,8 +207,10 @@ Admin Dashboard
 
 <h2 class="font-bold mt-6 mb-2">Home Page Offer</h2>
 
-<input id="offerText" placeholder="New Offer"
+<input type="Text" id="offertext"
+placeholder="Enter Offer Text"
 class="border p-2 w-full mb-2">
+
 
 <button onclick="updateOffer()"
 class="bg-blue-600 text-white px-4 py-2 rounded">
@@ -222,6 +224,31 @@ Update Offer
 </div>
 
 <script src="js/admin.js"></script>
+<script>
+  import { getFirestore, doc, setDoc } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const db = getFirestore();
+
+async function updateOffer(){
+
+  const text = document.getElementById("offerText").value;
+
+  if(text === ""){
+    alert("Enter offer text");
+    return;
+  }
+
+  await setDoc(doc(db,"offers","homeOffer"),{
+    text: text,
+    active:true,
+    time: Date.now()
+  });
+
+  alert("Offer Updated Successfully ✅");
+}
+
+</script>
 <script type="module">
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
