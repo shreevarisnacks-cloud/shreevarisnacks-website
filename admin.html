@@ -1,206 +1,267 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Admin Dashboard</title>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
-  authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
-  projectId: "shreevarisnacks-45d0d",
-  storageBucket: "shreevarisnacks-45d0d.firebasestorage.app",
-  messagingSenderId: "834301462418",
-  appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
-};
+  <script src="https://cdn.tailwindcss.com"></script>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+  <!-- Firebase -->
+  <script type="module">
 
-// Protect page
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "login.html"; // redirect if not logged in
-  }
-});
-</script>
+    /* ---------------- CONFIG ---------------- */
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-<script>
-firebase.auth().onAuthStateChanged(user => {
-  if(!user){
-    window.location.href = "login.html";
-  }
-});
-</script>
-<script type="module">
+    import { initializeApp } from
+      "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-// Firebase SDK
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from
+      "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Config
-const firebaseConfig = {
-  apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
-  authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
-  projectId: "shreevarisnacks-45d0d",
-  storageBucket: "shreevarisnacks-45d0d.firebasestorage.app",
-  messagingSenderId: "834301462418",
-  appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
-};
-
-// Init
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// Form Inputs (IMPORTANT)
-const form = document.getElementById("menuForm");
-
-const nameInput = document.getElementById("name");
-const priceInput = document.getElementById("price");
-const categoryInput = document.getElementById("category");
-const imageInput = document.getElementById("image");
-
-const list = document.getElementById("menuList");
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      deleteDoc,
+      doc,
+      updateDoc,
+      setDoc
+    } from
+      "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
-// Add Item
-form.addEventListener("submit", async (e) => {
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPVRH8VPPdhGVMF6NZFs7SXFUDVADpmg8",
+      authDomain: "shreevarisnacks-45d0d.firebaseapp.com",
+      projectId: "shreevarisnacks-45d0d",
+      storageBucket: "shreevarisnacks-45d0d.appspot.com",
+      messagingSenderId: "834301462418",
+      appId: "1:834301462418:web:291d73b35f0b6c3d96634b"
+    };
 
-  e.preventDefault();
 
-  const name = nameInput.value.trim();
-  const price = priceInput.value;
-  const category = categoryInput.value;
-  const file = imageInput.files[0];
+    /* ---------------- INIT ---------------- */
 
-  if (!name || !price) {
-    alert("Fill all fields");
-    return;
-  }
+    const app = initializeApp(firebaseConfig);
 
-  let imageUrl = "";
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  try {
 
-    // Upload Image
-    if (file) {
-      const imgRef = ref(storage, "menu/" + Date.now());
-      await uploadBytes(imgRef, file);
-      imageUrl = await getDownloadURL(imgRef);
+    /* ---------------- AUTH PROTECT ---------------- */
+
+    onAuthStateChanged(auth, (user) => {
+
+      if (!user) {
+        window.location.href = "login.html";
+      }
+
+    });
+
+
+    /* ---------------- ADD ITEM ---------------- */
+
+    const form = document.getElementById("menuForm");
+    const list = document.getElementById("menuList");
+
+
+    form.addEventListener("submit", async (e) => {
+
+      e.preventDefault();
+
+      const name = document.getElementById("name").value.trim();
+      const price = document.getElementById("price").value;
+      const category = document.getElementById("category").value;
+
+      if (!name || !price) {
+        alert("Fill all fields");
+        return;
+      }
+
+      try {
+
+        await addDoc(collection(db, "menu"), {
+
+          name: name,
+          price: Number(price),
+          category: category,
+          created: new Date()
+
+        });
+
+        alert("Item Added ✅");
+
+        form.reset();
+        loadMenu();
+
+      }
+      catch (err) {
+        alert(err.message);
+      }
+
+    });
+
+
+    /* ---------------- LOAD MENU ---------------- */
+
+    async function loadMenu() {
+
+      list.innerHTML = "";
+
+      const snap = await getDocs(collection(db, "menu"));
+
+      snap.forEach((docu) => {
+
+        const d = docu.data();
+
+        list.innerHTML += `
+
+        <div class="border p-3 mb-2 flex justify-between items-center">
+
+          <div>
+            <b>${d.name}</b><br>
+            ₹${d.price} | ${d.category}
+          </div>
+
+          <div class="space-x-2">
+
+            <button
+              onclick="editPrice('${docu.id}', ${d.price})"
+              class="bg-blue-600 text-white px-2 py-1 rounded">
+              Edit
+            </button>
+
+            <button
+              onclick="deleteItem('${docu.id}')"
+              class="bg-red-600 text-white px-2 py-1 rounded">
+              Delete
+            </button>
+
+          </div>
+
+        </div>
+        `;
+
+      });
+
     }
 
-    // Save Firestore
-    await addDoc(collection(db, "menu"), {
-      name,
-      price: Number(price),
-      category,
-      image: imageUrl,
-      created: new Date()
-    });
 
-    alert("Item Added Successfully ✅");
+    /* ---------------- EDIT PRICE ---------------- */
 
-    form.reset();
+    window.editPrice = async (id, oldPrice) => {
+
+      const newPrice = prompt("Enter new price", oldPrice);
+
+      if (!newPrice) return;
+
+      try {
+
+        await updateDoc(doc(db, "menu", id), {
+          price: Number(newPrice)
+        });
+
+        alert("Price Updated ✅");
+
+        loadMenu();
+
+      }
+      catch (e) {
+        alert(e.message);
+      }
+
+    };
+
+
+    /* ---------------- DELETE ---------------- */
+
+    window.deleteItem = async (id) => {
+
+      if (!confirm("Delete item?")) return;
+
+      await deleteDoc(doc(db, "menu", id));
+
+      loadMenu();
+
+    };
+
+
+    /* ---------------- OFFER ---------------- */
+
+    window.updateOffer = async () => {
+
+      const text = document.getElementById("offerText").value;
+
+      if (!text) {
+        alert("Enter offer");
+        return;
+      }
+
+      await setDoc(doc(db, "offers", "homeOffer"), {
+
+        text: text,
+        active: true,
+        time: Date.now()
+
+      });
+
+      alert("Offer Updated ✅");
+
+    };
+
+
+    /* ---------------- LOGOUT ---------------- */
+
+    window.logout = async () => {
+
+      await signOut(auth);
+
+      window.location.href = "login.html";
+
+    };
+
+
+    /* ---------------- START ---------------- */
+
     loadMenu();
 
-  } catch (err) {
-
-    console.error(err);
-    alert("Error: " + err.message);
-
-  }
-
-});
-
-// UPDATE PRICE
-async function updatePrice(id, newPrice) {
-
-  try {
-
-    await updateDoc(doc(db, "menu", id), {
-      price: Number(newPrice)
-    });
-
-    alert("Price Updated ✅");
-    location.reload();
-
-  } catch (e) {
-    alert("Error: " + e.message);
-  }
-}
-
-// Load Menu
-async function loadMenu() {
-
-  list.innerHTML = "";
-
-  const snap = await getDocs(collection(db, "menu"));
-
-  snap.forEach((docu) => {
-
-    const d = docu.data();
-
-    list.innerHTML += `
-      <div style="border:1px solid #ddd;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between">
-
-        <div>
-          <b>${d.name}</b><br>
-          ₹${d.price} | ${d.category}
-        </div>
-
-        <button onclick="deleteItem('${docu.id}')" 
-        style="color:red">
-          Delete
-        </button>
-        <button onclick="updatePrice('ITEM_ID','120')">
-          Update
-        </button>
-
-
-      </div>
-    `;
-  });
-}
-
-
-// Delete
-window.deleteItem = async (id) => {
-
-  if (!confirm("Delete this item?")) return;
-
-  await deleteDoc(doc(db, "menu", id));
-
-  loadMenu();
-};
-
-
-// First Load
-loadMenu();
-
-</script>
+  </script>
 
 </head>
+
+
+
 <body class="bg-gray-100">
 
+
+<!-- HEADER -->
+
 <h1 class="text-2xl font-bold p-4 bg-red-600 text-white">
-Admin Dashboard
+  Admin Dashboard
 </h1>
 
-<h2 class="text-2xl font-bold mb-4">Manage Menu</h2>
 
-<form id="menuForm" class="space-y-3 max-w-md">
+<div class="p-4 max-w-xl mx-auto">
 
-  <input id="name" placeholder="Item Name" class="border p-2 w-full" required>
 
-  <input id="price" type="number" placeholder="Price" class="border p-2 w-full" required>
+<!-- ADD MENU -->
+
+<h2 class="text-xl font-bold mb-3">Add Menu Item</h2>
+
+<form id="menuForm" class="space-y-3">
+
+  <input id="name" placeholder="Item Name"
+    class="border p-2 w-full" required>
+
+  <input id="price" type="number" placeholder="Price"
+    class="border p-2 w-full" required>
 
   <select id="category" class="border p-2 w-full">
+
     <option>pizza</option>
     <option>burger</option>
     <option>sandwich</option>
@@ -208,78 +269,65 @@ Admin Dashboard
     <option>mocktail</option>
     <option>maggie</option>
     <option>more</option>
+
   </select>
 
-  <input type="file" id="image" accept="image/*">
+  <button
+    class="bg-green-600 text-white px-4 py-2 rounded w-full">
 
-  <button class="bg-green-600 text-white px-4 py-2 rounded">
     Save Item
+
   </button>
 
 </form>
 
+
 <hr class="my-6">
+
+
+<!-- MENU LIST -->
+
+<h2 class="text-xl font-bold mb-3">Menu List</h2>
 
 <div id="menuList"></div>
 
 
-<div class="p-4">
-
-<h2 class="font-bold mt-6 mb-2">Home Page Offer</h2>
-
-<input type="Text" id="offertext"
-placeholder="Enter Offer Text"
-class="border p-2 w-full mb-2">
+<hr class="my-6">
 
 
-<button onclick="updateOffer()"
-class="bg-blue-600 text-white px-4 py-2 rounded">
-Update Offer
+<!-- OFFER -->
+
+<h2 class="text-xl font-bold mb-3">Home Offer</h2>
+
+<input
+  id="offerText"
+  placeholder="Enter Offer"
+  class="border p-2 w-full mb-2">
+
+<button
+  onclick="updateOffer()"
+  class="bg-blue-600 text-white px-4 py-2 rounded w-full">
+
+  Update Offer
+
 </button>
 
-<button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded">
+
+<hr class="my-6">
+
+
+<!-- LOGOUT -->
+
+<button
+  onclick="logout()"
+  class="bg-red-600 text-white px-4 py-2 rounded w-full">
+
   Logout
+
 </button>
+
 
 </div>
-
-<script src="js/admin.js"></script>
-<script>
-  import { getFirestore, doc, setDoc } 
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const db = getFirestore();
-
-async function updateOffer(){
-
-  const text = document.getElementById("offerText").value;
-
-  if(text === ""){
-    alert("Enter offer text");
-    return;
-  }
-
-  await setDoc(doc(db,"offers","homeOffer"),{
-    text: text,
-    active:true,
-    time: Date.now()
-  });
-
-  alert("Offer Updated Successfully ✅");
-}
-
-</script>
-<script type="module">
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const auth = getAuth();
-
-window.logout = function () {
-  signOut(auth).then(() => {
-    window.location.href = "login.html";
-  });
-};
-</script>
 
 </body>
 </html>
