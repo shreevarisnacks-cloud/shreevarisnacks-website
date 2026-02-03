@@ -118,6 +118,22 @@ form.addEventListener("submit", async (e) => {
 
 });
 
+// UPDATE PRICE
+async function updatePrice(id, newPrice) {
+
+  try {
+
+    await updateDoc(doc(db, "menu", id), {
+      price: Number(newPrice)
+    });
+
+    alert("Price Updated ✅");
+    location.reload();
+
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
+}
 
 // Load Menu
 async function loadMenu() {
@@ -142,6 +158,10 @@ async function loadMenu() {
         style="color:red">
           Delete
         </button>
+        <button onclick="updatePrice('ITEM_ID','120')">
+          Update
+        </button>
+
 
       </div>
     `;
