@@ -202,6 +202,28 @@ loadMenu();
 };
 
 
+// OFFER LIVE
+const offerBox = document.getElementById("offerBanner");
+
+onSnapshot(doc(db, "offers", "homeOffer"), snap => {
+
+  if (snap.exists()) {
+
+    const data = snap.data();
+
+    if (data.active) {
+
+      offerBox.innerText = data.text;
+      offerBox.style.display = "block";
+
+    } else {
+
+      offerBox.style.display = "none";
+
+    }
+  }
+
+});
 /* DELETE */
 window.deleteItem = async id=>{
 
