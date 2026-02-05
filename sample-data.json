@@ -1,0 +1,265 @@
+{
+  "menuItems": [
+    {
+      "name": "Margherita Pizza",
+      "category": "pizza",
+      "description": "Classic pizza with tomato sauce, mozzarella cheese, and fresh basil",
+      "price": 199,
+      "available": true
+    },
+    {
+      "name": "Pepperoni Pizza",
+      "category": "pizza",
+      "description": "Loaded with pepperoni and extra cheese",
+      "price": 249,
+      "available": true
+    },
+    {
+      "name": "Veggie Supreme Pizza",
+      "category": "pizza",
+      "description": "Topped with bell peppers, onions, mushrooms, olives, and tomatoes",
+      "price": 229,
+      "available": true
+    },
+    {
+      "name": "Classic Burger",
+      "category": "burger",
+      "description": "Juicy beef patty with lettuce, tomato, onion, and special sauce",
+      "price": 149,
+      "available": true
+    },
+    {
+      "name": "Chicken Burger",
+      "category": "burger",
+      "description": "Crispy chicken patty with mayo and fresh vegetables",
+      "price": 159,
+      "available": true
+    },
+    {
+      "name": "Veggie Burger",
+      "category": "burger",
+      "description": "Plant-based patty with all the fixings",
+      "price": 139,
+      "available": true
+    },
+    {
+      "name": "Cheese Burger",
+      "category": "burger",
+      "description": "Double cheese with beef patty",
+      "price": 169,
+      "available": true
+    },
+    {
+      "name": "Grilled Sandwich",
+      "category": "sandwich",
+      "description": "Toasted bread with cheese, vegetables, and herbs",
+      "price": 99,
+      "available": true
+    },
+    {
+      "name": "Club Sandwich",
+      "category": "sandwich",
+      "description": "Triple-decker with chicken, bacon, lettuce, and tomato",
+      "price": 129,
+      "available": true
+    },
+    {
+      "name": "Veg Sandwich",
+      "category": "sandwich",
+      "description": "Fresh vegetables with mint chutney",
+      "price": 79,
+      "available": true
+    },
+    {
+      "name": "Paneer Sandwich",
+      "category": "sandwich",
+      "description": "Grilled paneer with spices and vegetables",
+      "price": 109,
+      "available": true
+    },
+    {
+      "name": "Chocolate Milkshake",
+      "category": "milkshake",
+      "description": "Rich and creamy chocolate shake",
+      "price": 89,
+      "available": true
+    },
+    {
+      "name": "Vanilla Milkshake",
+      "category": "milkshake",
+      "description": "Classic vanilla shake with ice cream",
+      "price": 79,
+      "available": true
+    },
+    {
+      "name": "Strawberry Milkshake",
+      "category": "milkshake",
+      "description": "Fresh strawberries blended with milk and ice cream",
+      "price": 99,
+      "available": true
+    },
+    {
+      "name": "Mango Milkshake",
+      "category": "milkshake",
+      "description": "Seasonal mango shake (when available)",
+      "price": 109,
+      "available": true
+    },
+    {
+      "name": "Oreo Shake",
+      "category": "milkshake",
+      "description": "Crushed Oreos blended with vanilla ice cream",
+      "price": 119,
+      "available": true
+    },
+    {
+      "name": "Virgin Mojito",
+      "category": "mocktail",
+      "description": "Refreshing mint and lime drink",
+      "price": 79,
+      "available": true
+    },
+    {
+      "name": "Blue Lagoon",
+      "category": "mocktail",
+      "description": "Blue curacao flavor with lemon and soda",
+      "price": 89,
+      "available": true
+    },
+    {
+      "name": "Watermelon Cooler",
+      "category": "mocktail",
+      "description": "Fresh watermelon juice with mint",
+      "price": 99,
+      "available": true
+    },
+    {
+      "name": "Orange Sunset",
+      "category": "mocktail",
+      "description": "Orange juice with grenadine and soda",
+      "price": 85,
+      "available": true
+    },
+    {
+      "name": "Classic Maggie",
+      "category": "maggie",
+      "description": "Classic masala maggie",
+      "price": 49,
+      "available": true
+    },
+    {
+      "name": "Cheese Maggie",
+      "category": "maggie",
+      "description": "Maggie loaded with cheese",
+      "price": 69,
+      "available": true
+    },
+    {
+      "name": "Vegetable Maggie",
+      "category": "maggie",
+      "description": "Maggie with mixed vegetables",
+      "price": 59,
+      "available": true
+    },
+    {
+      "name": "Schezwan Maggie",
+      "category": "maggie",
+      "description": "Spicy Schezwan flavored maggie",
+      "price": 79,
+      "available": true
+    },
+    {
+      "name": "French Fries",
+      "category": "more",
+      "description": "Crispy golden fries with ketchup",
+      "price": 69,
+      "available": true
+    },
+    {
+      "name": "Cheese Fries",
+      "category": "more",
+      "description": "Fries topped with melted cheese",
+      "price": 89,
+      "available": true
+    },
+    {
+      "name": "Garlic Bread",
+      "category": "more",
+      "description": "Toasted bread with garlic butter",
+      "price": 79,
+      "available": true
+    },
+    {
+      "name": "Spring Rolls",
+      "category": "more",
+      "description": "Crispy vegetable spring rolls",
+      "price": 99,
+      "available": true
+    },
+    {
+      "name": "Nachos",
+      "category": "more",
+      "description": "Tortilla chips with cheese dip and salsa",
+      "price": 119,
+      "available": true
+    },
+    {
+      "name": "Pasta",
+      "category": "more",
+      "description": "Penne pasta in red or white sauce",
+      "price": 149,
+      "available": true
+    }
+  ],
+  "offers": [
+    {
+      "title": "Buy 1 Get 1 Free",
+      "description": "On all pizzas every Wednesday!",
+      "price": "50% OFF",
+      "badge": "HOT DEAL",
+      "active": true
+    },
+    {
+      "title": "Combo Meals",
+      "description": "Get burger + fries + drink",
+      "price": "₹199",
+      "badge": "LIMITED TIME",
+      "active": true
+    },
+    {
+      "title": "Family Pack",
+      "description": "2 Pizzas + 2 Milkshakes",
+      "price": "₹599",
+      "badge": "WEEKEND SPECIAL",
+      "active": true
+    },
+    {
+      "title": "Student Special",
+      "description": "Show your ID and get 20% off on all items",
+      "price": "20% OFF",
+      "badge": "STUDENT OFFER",
+      "active": true
+    },
+    {
+      "title": "Happy Hours",
+      "description": "All mocktails at special price between 4-6 PM",
+      "price": "₹59",
+      "badge": "HAPPY HOURS",
+      "active": true
+    },
+    {
+      "title": "Breakfast Combo",
+      "description": "Sandwich + Milkshake + Fries",
+      "price": "₹149",
+      "badge": "MORNING DEAL",
+      "active": false
+    }
+  ],
+  "adminExample": {
+    "note": "Create this document in the 'admins' collection with document ID as the Firebase Auth UID",
+    "name": "Admin Name",
+    "email": "admin@shreevarisnacks.in",
+    "securityCode": "123456",
+    "createdAt": "2024-02-05T00:00:00.000Z"
+  }
+}

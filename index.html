@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shreevari Snacks - Delicious Food Delivered</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<body class="bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center">
+                    <h1 class="text-3xl font-black text-orange-600 logo-text">Shreevari Snacks</h1>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="index.html" class="nav-link active">Home</a>
+                    <a href="menu.html" class="nav-link">Menu</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                    <a href="login.html" class="nav-link">Login</a>
+                </div>
+                <button id="mobileMenuBtn" class="md:hidden text-orange-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white border-t">
+            <div class="px-4 py-4 space-y-3">
+                <a href="index.html" class="block nav-link-mobile active">Home</a>
+                <a href="menu.html" class="block nav-link-mobile">Menu</a>
+                <a href="contact.html" class="block nav-link-mobile">Contact</a>
+                <a href="login.html" class="block nav-link-mobile">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-6 fade-in">
+                    <h2 class="text-6xl font-black text-gray-900 hero-title">
+                        Taste the <span class="text-gradient">Magic</span> of Fresh Snacks
+                    </h2>
+                    <p class="text-xl text-gray-600 leading-relaxed">
+                        From crispy pizzas to creamy milkshakes, we serve happiness in every bite. Order now and experience the deliciousness!
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="https://wa.me/c/919844572129" target="_blank" class="whatsapp-btn">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                            </svg>
+                            Order on WhatsApp
+                        </a>
+                        <a href="menu.html" class="menu-btn">
+                            View Menu
+                        </a>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="hero-image-container">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-400 to-red-500 rounded-3xl transform rotate-6"></div>
+                        <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&h=600&fit=crop" 
+                             alt="Delicious Pizza" 
+                             class="relative rounded-3xl shadow-2xl object-cover w-full h-96">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Offers Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-black text-center mb-12 text-gray-900">
+                🎉 Special Offers
+            </h2>
+            <div id="offersContainer" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Offers will be loaded dynamically -->
+                <div class="offer-card">
+                    <div class="offer-badge">HOT DEAL</div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Buy 1 Get 1 Free</h3>
+                    <p class="text-gray-600 mb-4">On all pizzas every Wednesday!</p>
+                    <div class="text-3xl font-black text-orange-600">50% OFF</div>
+                </div>
+                <div class="offer-card">
+                    <div class="offer-badge">LIMITED TIME</div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Combo Meals</h3>
+                    <p class="text-gray-600 mb-4">Get burger + fries + drink</p>
+                    <div class="text-3xl font-black text-orange-600">₹199</div>
+                </div>
+                <div class="offer-card">
+                    <div class="offer-badge">WEEKEND SPECIAL</div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Family Pack</h3>
+                    <p class="text-gray-600 mb-4">2 Pizzas + 2 Milkshakes</p>
+                    <div class="text-3xl font-black text-orange-600">₹599</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Items -->
+    <section class="py-16 bg-gradient-to-br from-orange-50 to-yellow-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-black text-center mb-12 text-gray-900">
+                🔥 Popular Items
+            </h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="popular-item">
+                    <div class="h-48 bg-gradient-to-br from-red-400 to-orange-500 rounded-2xl mb-4 flex items-center justify-center text-6xl">
+                        🍕
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Pizzas</h3>
+                    <p class="text-gray-600">From ₹149</p>
+                </div>
+                <div class="popular-item">
+                    <div class="h-48 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl mb-4 flex items-center justify-center text-6xl">
+                        🍔
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Burgers</h3>
+                    <p class="text-gray-600">From ₹99</p>
+                </div>
+                <div class="popular-item">
+                    <div class="h-48 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl mb-4 flex items-center justify-center text-6xl">
+                        🥤
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Milkshakes</h3>
+                    <p class="text-gray-600">From ₹79</p>
+                </div>
+                <div class="popular-item">
+                    <div class="h-48 bg-gradient-to-br from-green-400 to-teal-500 rounded-2xl mb-4 flex items-center justify-center text-6xl">
+                        🥪
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Sandwiches</h3>
+                    <p class="text-gray-600">From ₹69</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-black text-center mb-12 text-gray-900">
+                Why Choose Shreevari Snacks?
+            </h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center space-y-4">
+                    <div class="text-6xl">⚡</div>
+                    <h3 class="text-2xl font-bold text-gray-900">Fast Delivery</h3>
+                    <p class="text-gray-600">Hot and fresh food delivered to your doorstep in minutes</p>
+                </div>
+                <div class="text-center space-y-4">
+                    <div class="text-6xl">🌟</div>
+                    <h3 class="text-2xl font-bold text-gray-900">Quality Ingredients</h3>
+                    <p class="text-gray-600">We use only the freshest and finest ingredients</p>
+                </div>
+                <div class="text-center space-y-4">
+                    <div class="text-6xl">💰</div>
+                    <h3 class="text-2xl font-bold text-gray-900">Affordable Prices</h3>
+                    <p class="text-gray-600">Delicious food that doesn't break the bank</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-2xl font-black mb-4 text-orange-400">Shreevari Snacks</h3>
+                    <p class="text-gray-400">Serving delicious food with love since day one.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Quick Links</h4>
+                    <div class="space-y-2">
+                        <a href="index.html" class="block text-gray-400 hover:text-orange-400 transition">Home</a>
+                        <a href="menu.html" class="block text-gray-400 hover:text-orange-400 transition">Menu</a>
+                        <a href="contact.html" class="block text-gray-400 hover:text-orange-400 transition">Contact</a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Contact</h4>
+                    <div class="space-y-2 text-gray-400">
+                        <p>📞 +91 98445 72129</p>
+                        <p>📧 info@shreevarisnacks.in</p>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Follow Us</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition text-2xl">📘</a>
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition text-2xl">📷</a>
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition text-2xl">🐦</a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Shreevari Snacks. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="https://wa.me/c/919844572129" target="_blank" class="whatsapp-float">
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+        </svg>
+    </a>
+
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
