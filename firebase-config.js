@@ -13,8 +13,8 @@ const firebaseConfig = {
 // Cloudinary Configuration
 // Replace these with your Cloudinary credentials from https://cloudinary.com/console
 const cloudinaryConfig = {
-  cloudName: "YOUR_CLOUD_NAME",  // e.g., "shreevari-snacks"
-  uploadPreset: "YOUR_UPLOAD_PRESET"  // Create an unsigned upload preset in Cloudinary settings
+  cloudName: "dbdixubzv",  // e.g., "shreevari-snacks"
+  uploadPreset: "shreevari-upload"  // Create an unsigned upload preset in Cloudinary settings
 };
 
 // Initialize Firebase
