@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Setup Checker - Shreevari Snacks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6">🔍 Firebase Setup Checker</h1>
+            <p class="text-gray-600 mb-8">This page will help you diagnose Firebase configuration issues.</p>
+            
+            <div id="results" class="space-y-4"></div>
+            
+            <button onclick="checkSetup()" class="mt-6 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">
+                Run Diagnostics
+            </button>
+            
+            <div class="mt-8 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                <h3 class="font-bold text-yellow-800 mb-2">📋 Manual Checks Needed:</h3>
+                <ol class="text-sm text-yellow-700 space-y-2 list-decimal list-inside">
+                    <li>Go to Firebase Console → Authentication → Sign-in method</li>
+                    <li>Verify "Email/Password" is ENABLED</li>
+                    <li>Go to Authentication → Users</li>
+                    <li>Verify your admin email exists and copy the UID</li>
+                    <li>Go to Firestore Database → admins collection</li>
+                    <li>Verify a document exists with Document ID = your UID</li>
+                    <li>Verify the document has fields: name, email, securityCode, createdAt</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        function addResult(title, status, message, details = '') {
+            const results = document.getElementById('results');
+            const statusColor = status === 'success' ? 'green' : status === 'warning' ? 'yellow' : 'red';
+            const statusIcon = status === 'success' ? '✅' : status === 'warning' ? '⚠️' : '❌';
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `border-2 border-${statusColor}-200 bg-${statusColor}-50 rounded-lg p-4`;
+            resultDiv.innerHTML = `
+                <div class="flex items-start">
+                    <span class="text-2xl mr-3">${statusIcon}</span>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-${statusColor}-800">${title}</h3>
+                        <p class="text-${statusColor}-700 mt-1">${message}</p>
+                        ${details ? `<pre class="mt-2 text-xs bg-white p-2 rounded overflow-auto">${details}</pre>` : ''}
+                    </div>
+                </div>
+            `;
+            results.appendChild(resultDiv);
+        }
+        
+        async function checkSetup() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p class="text-gray-600">Running diagnostics...</p>';
+            
+            setTimeout(async () => {
+                results.innerHTML = '';
+                
+                // Check 1: Firebase SDK loaded
+                if (typeof firebase === 'undefined') {
+                    addResult('Firebase SDK', 'error', 'Firebase SDK not loaded!', 'Make sure firebase-config.js is in the same folder as this file.');
+                    return;
+                } else {
+                    addResult('Firebase SDK', 'success', 'Firebase SDK loaded successfully');
+                }
+                
+                // Check 2: Firebase initialized
+                if (!firebase.apps.length) {
+                    addResult('Firebase Init', 'error', 'Firebase not initialized!', 'Check firebase-config.js for configuration errors.');
+                    return;
+                } else {
+                    addResult('Firebase Init', 'success', 'Firebase initialized');
+                }
+                
+                // Check 3: Auth available
+                if (!auth) {
+                    addResult('Firebase Auth', 'error', 'Firebase Authentication not available');
+                    return;
+                } else {
+                    addResult('Firebase Auth', 'success', 'Firebase Authentication available');
+                }
+                
+                // Check 4: Firestore available
+                if (!db) {
+                    addResult('Firestore', 'error', 'Firestore not available');
+                    return;
+                } else {
+                    addResult('Firestore', 'success', 'Firestore Database available');
+                }
+                
+                // Check 5: Firebase Config
+                const config = firebase.app().options;
+                addResult('Firebase Config', 'success', 'Configuration loaded', 
+                    `Project ID: ${config.projectId}\nAuth Domain: ${config.authDomain}`);
+                
+                // Check 6: Try to access admins collection
+                try {
+                    const adminsSnapshot = await db.collection('admins').limit(1).get();
+                    if (adminsSnapshot.empty) {
+                        addResult('Admins Collection', 'warning', 
+                            'Admins collection is empty!', 
+                            'You need to create an admin document in Firestore.\n\nSteps:\n1. Create user in Authentication\n2. Copy the UID\n3. Create document in Firestore admins collection with UID as document ID');
+                    } else {
+                        const adminDoc = adminsSnapshot.docs[0];
+                        const adminData = adminDoc.data();
+                        addResult('Admins Collection', 'success', 
+                            `Found admin document`, 
+                            `Document ID (UID): ${adminDoc.id}\nEmail: ${adminData.email || 'Not set'}\nSecurity Code Set: ${adminData.securityCode ? 'Yes' : 'No'}`);
+                    }
+                } catch (error) {
+                    addResult('Admins Collection', 'error', 
+                        'Cannot access admins collection', 
+                        `Error: ${error.message}\n\nThis might be due to Firestore security rules. Make sure rules allow reading admins collection.`);
+                }
+                
+                // Check 7: Current auth state
+                const currentUser = auth.currentUser;
+                if (currentUser) {
+                    addResult('Current User', 'success', 
+                        'A user is currently logged in', 
+                        `UID: ${currentUser.uid}\nEmail: ${currentUser.email}`);
+                } else {
+                    addResult('Current User', 'warning', 
+                        'No user currently logged in', 
+                        'This is normal if you just opened the page');
+                }
+                
+                // Final recommendation
+                setTimeout(() => {
+                    addResult('Next Steps', 'warning', 
+                        'If you see errors above, follow these steps:', 
+                        '1. Fix any errors shown in red (❌)\n2. If admins collection is empty, create an admin account:\n   - Go to Firebase Console → Authentication → Add user\n   - Copy the UID\n   - Go to Firestore → admins → Add document\n   - Document ID = UID from step 2\n   - Add fields: name, email, securityCode, createdAt\n\n3. Try logging in again\n\nSee ADMIN_LOGIN_TROUBLESHOOTING.md for detailed instructions.');
+                }, 500);
+                
+            }, 500);
+        }
+        
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkSetup();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
