@@ -131,6 +131,14 @@ function createMenuItemCard(item) {
                 ${item.description ? `<p class="text-gray-600 mb-4">${item.description}</p>` : ''}
                 <div class="flex justify-between items-center">
                     <span class="text-2xl font-black text-orange-600">₹${item.price}</span>
+                    <!-- Add to Cart Button -->
+                    <button onclick="addToCart('${item.id}', '${item.name}', ${item.price}, '${item.image || ''}')" 
+                            class="w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 mb-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Add to Cart
+                    </button>
                     <a href="https://wa.me/c/919844572129?text=I want to order ${encodeURIComponent(item.name)}" 
                        target="_blank"
                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full font-semibold transition flex items-center gap-2">
@@ -190,3 +198,8 @@ setTimeout(() => {
         observer.observe(el);
     });
 }, 500);
+// Add to cart function
+function addToCart(id, name, price, image) {
+    cart.addItem({ id, name, price, image });
+}
+
