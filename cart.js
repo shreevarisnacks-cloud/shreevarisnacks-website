@@ -113,6 +113,14 @@ class ShoppingCart {
                 badge.classList.add('hidden');
             }
         }
+        if (badgeMobile) {
+            if (count > 0) {
+                badgeMobile.textContent = count;
+                badgeMobile.classList.remove('hidden');
+            } else {
+                badgeMobile.classList.add('hidden');
+            }
+        }
     }
 
     // Show notification
