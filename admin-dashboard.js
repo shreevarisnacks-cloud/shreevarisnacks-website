@@ -761,3 +761,204 @@ document.getElementById('cancelBannerEdit').addEventListener('click', () => {
 
 // Load banners when banners tab is clicked
 document.querySelector('button[data-tab="banners"]').addEventListener('click', loadBanners);
+// ========================================
+// ORDERS MANAGEMENT
+// ========================================
+
+// Load Orders
+async function loadOrders() {
+    const ordersList = document.getElementById('ordersList');
+    
+    try {
+        const ordersSnapshot = await db.collection('orders')
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+
+        if (ordersSnapshot.empty) {
+            ordersList.innerHTML = '<p class="text-gray-500 text-center py-8">No orders yet.</p>';
+            return;
+        }
+
+        let ordersHTML = '';
+        ordersSnapshot.forEach(doc => {
+            const order = doc.data();
+            const statusColor = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'accepted': 'bg-blue-100 text-blue-800',
+                'preparing': 'bg-purple-100 text-purple-800',
+                'out_for_delivery': 'bg-orange-100 text-orange-800',
+                'delivered': 'bg-green-100 text-green-800',
+                'cancelled': 'bg-red-100 text-red-800'
+            }[order.status] || 'bg-gray-100 text-gray-800';
+            
+            ordersHTML += `
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-lg">${order.customerName}</h3>
+                            <p class="text-sm text-gray-600">📞 ${order.phone}</p>
+                            <p class="text-sm text-gray-600">📍 ${order.address}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold ${statusColor}">
+                            ${order.status ? order.status.replace('_', ' ').toUpperCase() : 'PENDING'}
+                        </span>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                        <p class="text-sm font-semibold text-gray-700">Order Details:</p>
+                        <p class="text-sm text-gray-600 whitespace-pre-line">${order.orderDetails}</p>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <p class="text-sm text-gray-600">Amount: <span class="font-bold text-gray-900">₹${order.amount}</span></p>
+                            <p class="text-sm text-gray-600">Payment: <span class="font-semibold ${order.paymentStatus === 'received' ? 'text-green-600' : 'text-yellow-600'}">${order.paymentStatus || 'Pending'}</span></p>
+                        </div>
+                        ${order.deliveryTime ? `
+                            <div class="text-right">
+                                <p class="text-sm text-gray-600">Delivery Time:</p>
+                                <p class="font-bold text-orange-600">${order.deliveryTime}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        ${!order.deliveryTime ? `
+                            <button onclick="setDeliveryTime('${doc.id}')" 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                                ⏰ Set Delivery Time
+                            </button>
+                        ` : ''}
+                        
+                        <button onclick="updateOrderStatus('${doc.id}', '${order.status}')" 
+                                class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                            Update Status
+                        </button>
+                        
+                        <button onclick="deleteOrder('${doc.id}')" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        ordersList.innerHTML = ordersHTML;
+    } catch (error) {
+        console.error('Error loading orders:', error);
+        ordersList.innerHTML = '<p class="text-red-500 text-center">Error loading orders</p>';
+    }
+}
+
+// Add Order (Manual Entry from WhatsApp)
+document.getElementById('addOrderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const orderData = {
+        customerName: document.getElementById('orderCustomerName').value,
+        phone: document.getElementById('orderPhone').value,
+        orderDetails: document.getElementById('orderDetails').value,
+        address: document.getElementById('orderAddress').value,
+        amount: parseFloat(document.getElementById('orderAmount').value),
+        paymentStatus: document.getElementById('orderPaymentStatus').value,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+    };
+    
+    try {
+        await db.collection('orders').add(orderData);
+        alert('Order added successfully!');
+        document.getElementById('addOrderForm').reset();
+        loadOrders();
+    } catch (error) {
+        console.error('Error adding order:', error);
+        alert('Error adding order');
+    }
+});
+
+// Set Delivery Time
+async function setDeliveryTime(orderId) {
+    const time = prompt('Enter delivery time (e.g., "30 minutes", "1 hour", "2:30 PM"):');
+    
+    if (!time) return;
+    
+    try {
+        await db.collection('orders').doc(orderId).update({
+            deliveryTime: time,
+            status: 'accepted'
+        });
+        
+        // Get order details to send WhatsApp notification
+        const orderDoc = await db.collection('orders').doc(orderId).get();
+        const order = orderDoc.data();
+        
+        // Send delivery time to customer via WhatsApp
+        const message = encodeURIComponent(
+            `🎉 Order Confirmed - Shreevari Snacks\n\n` +
+            `Dear ${order.customerName},\n\n` +
+            `Your order has been confirmed!\n` +
+            `Estimated Delivery Time: ${time}\n\n` +
+            `Order Amount: ₹${order.amount}\n` +
+            `Delivery Address: ${order.address}\n\n` +
+            `Thank you for ordering! 😊`
+        );
+        
+        const whatsappURL = `https://wa.me/${order.phone}?text=${message}`;
+        window.open(whatsappURL, '_blank');
+        
+        alert('Delivery time set! WhatsApp message opened.');
+        loadOrders();
+    } catch (error) {
+        console.error('Error setting delivery time:', error);
+        alert('Error setting delivery time');
+    }
+}
+
+// Update Order Status
+async function updateOrderStatus(orderId, currentStatus) {
+    const statuses = ['pending', 'accepted', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
+    const statusLabels = ['Pending', 'Accepted', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+    
+    let options = '';
+    statuses.forEach((status, index) => {
+        options += `${index + 1}. ${statusLabels[index]}\n`;
+    });
+    
+    const choice = prompt(`Select new status:\n${options}\nEnter number (1-6):`);
+    
+    if (!choice || choice < 1 || choice > 6) return;
+    
+    const newStatus = statuses[choice - 1];
+    
+    try {
+        await db.collection('orders').doc(orderId).update({
+            status: newStatus,
+            updatedAt: new Date().toISOString()
+        });
+        
+        alert('Order status updated!');
+        loadOrders();
+    } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Error updating status');
+    }
+}
+
+// Delete Order
+async function deleteOrder(orderId) {
+    if (!confirm('Are you sure you want to delete this order?')) return;
+    
+    try {
+        await db.collection('orders').doc(orderId).delete();
+        alert('Order deleted!');
+        loadOrders();
+    } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Error deleting order');
+    }
+}
+
+// Load orders when orders tab is clicked
+document.querySelector('button[data-tab="orders"]').addEventListener('click', loadOrders);
