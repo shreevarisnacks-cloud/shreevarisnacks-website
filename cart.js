@@ -23,7 +23,7 @@ class ShoppingCart {
     // Save cart to localStorage
     saveCart() {
         localStorage.setItem('shreevari_cart', JSON.stringify(this.items));
-        this.updateCartBadge();
+        this.updateCartBadge();this.triggerCartReload();
     }
 
     // Add item to cart
@@ -103,6 +103,7 @@ class ShoppingCart {
     // Update cart badge in navbar
     updateCartBadge() {
         const badge = document.getElementById('cartBadge');
+        const badgeMobile = document.getElementById('cartBadgeMobile');
         const count = this.getItemCount();
         
         if (badge) {
