@@ -5,8 +5,8 @@
 
 // Restaurant location (Koratagere, Karnataka)
 const RESTAURANT_LOCATION = {
-    lat: 13.5290,
-    lng: 76.9930
+    lat: 13.520935985883005,
+    lng: 77.237526720881
 };
 
 let customerLocation = null;
