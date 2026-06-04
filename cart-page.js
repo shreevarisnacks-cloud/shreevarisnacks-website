@@ -1,7 +1,8 @@
 // ========================================
-// CART PAGE - DISPLAY ITEMS PROPERLY
+// CART PAGE - QR CODE PAYMENT ONLY
 // ========================================
 
+// Restaurant location
 const RESTAURANT_LOCATION = {
     lat: 13.520935985883005,
     lng: 77.237526720881
@@ -13,29 +14,47 @@ let paymentScreenshot = null;
 let expectedAmount = 0;
 let currentUser = null;
 
-// ========================================
-// INITIALIZE ON PAGE LOAD
-// ========================================
+console.log('📄 Cart page script loaded');
 
-console.log('📄 Cart page loading...');
-
-// Check if user is logged in
-auth.onAuthStateChanged((user) => {
-    if (!user) {
-        console.log('⚠️ User not logged in, redirecting to login...');
-        alert('⚠️ Please login to place an order');
-        window.location.href = 'login.html?redirect=cart.html';
+// Wait for Firebase to be ready
+function waitForFirebase(callback, attempts = 0) {
+    if (attempts > 10) {
+        console.error('❌ Firebase not loaded after 10 attempts');
+        alert('Error: System not loading. Please refresh page.');
         return;
     }
-    console.log('✅ User logged in:', user.email);
-    currentUser = user;
-});
+    
+    if (typeof auth !== 'undefined' && typeof db !== 'undefined') {
+        console.log('✅ Firebase ready');
+        callback();
+    } else {
+        console.log('⏳ Waiting for Firebase... attempt', attempts + 1);
+        setTimeout(() => waitForFirebase(callback, attempts + 1), 500);
+    }
+}
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🛒 Initializing cart page...');
-    displayCartItems();
-    updateCartBadges();
+// Initialize when Firebase is ready
+waitForFirebase(() => {
+    console.log('🚀 Initializing cart page');
+    
+    // Check authentication
+    auth.onAuthStateChanged((user) => {
+        if (!user) {
+            console.log('⚠️ Not logged in');
+            alert('⚠️ Please login to place an order');
+            window.location.href = 'login.html?redirect=cart.html';
+            return;
+        }
+        console.log('✅ User logged in:', user.email);
+        currentUser = user;
+    });
+    
+    // Load cart display
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', displayCartItems);
+    } else {
+        displayCartItems();
+    }
 });
 
 // ========================================
@@ -43,20 +62,27 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========================================
 
 function displayCartItems() {
-    console.log('📋 displayCartItems() called');
-    console.log('Cart items:', cart.items);
+    console.log('📋 Displaying cart items');
+    
+    // Wait for cart object
+    if (typeof cart === 'undefined') {
+        console.warn('⏳ Cart not ready, retrying...');
+        setTimeout(displayCartItems, 500);
+        return;
+    }
+    
+    console.log('Items in cart:', cart.items.length);
     
     const container = document.getElementById('cartItems');
     const emptyCart = document.getElementById('emptyCart');
     const checkoutSection = document.getElementById('checkoutSection');
     
-    // Check if elements exist
     if (!container) {
         console.error('❌ cartItems element not found!');
         return;
     }
     
-    // If cart is empty
+    // Empty cart
     if (!cart.items || cart.items.length === 0) {
         console.log('🛒 Cart is empty');
         container.classList.add('hidden');
@@ -65,204 +91,87 @@ function displayCartItems() {
         return;
     }
     
-    // Show cart items
-    console.log('📦 Displaying ' + cart.items.length + ' items');
+    // Show items
     container.classList.remove('hidden');
     if (emptyCart) emptyCart.classList.add('hidden');
     if (checkoutSection) checkoutSection.classList.remove('hidden');
     
-    let itemsHTML = '';
+    let html = '';
     
-    cart.items.forEach((item, index) => {
-        console.log('  Item ' + (index + 1) + ':', item.name, 'x' + item.quantity);
-        
+    cart.items.forEach((item, i) => {
         const subtotal = item.price * item.quantity;
         
-        itemsHTML += `
+        html += `
             <div class="bg-white rounded-xl shadow-lg p-4 flex gap-4 mb-4">
-                <!-- Image -->
                 ${item.image ? 
                     `<img src="${item.image}" alt="${item.name}" class="w-20 h-20 md:w-24 md:h-24 object-cover rounded-lg flex-shrink-0">` : 
-                    `<div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-3xl md:text-4xl flex-shrink-0">🍕</div>`
+                    `<div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-3xl flex-shrink-0">🍕</div>`
                 }
                 
-                <!-- Details -->
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-base md:text-lg font-bold text-gray-900 truncate">${item.name}</h3>
-                    <p class="text-orange-600 font-bold text-lg md:text-xl">₹${item.price}</p>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-900">${item.name}</h3>
+                    <p class="text-orange-600 font-bold text-lg">₹${item.price}</p>
                     
-                    <!-- Quantity Controls -->
-                    <div class="flex items-center gap-2 md:gap-3 mt-2 md:mt-3">
-                        <button onclick="updateItemQuantity('${item.id}', ${item.quantity - 1})" 
-                                class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-lg font-bold transition">
-                            −
-                        </button>
-                        <span class="font-bold text-base md:text-lg w-8 text-center">${item.quantity}</span>
-                        <button onclick="updateItemQuantity('${item.id}', ${item.quantity + 1})" 
-                                class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-lg font-bold transition">
-                            +
-                        </button>
-                        
-                        <button onclick="removeFromCart('${item.id}')" 
-                                class="ml-auto text-red-600 hover:text-red-700 font-semibold text-sm md:text-base">
-                            🗑️ Remove
-                        </button>
+                    <div class="flex items-center gap-2 mt-2">
+                        <button onclick="updateQuantity('${item.id}', ${item.quantity - 1})" class="bg-gray-200 w-8 h-8 rounded font-bold">−</button>
+                        <span class="font-bold w-8 text-center">${item.quantity}</span>
+                        <button onclick="updateQuantity('${item.id}', ${item.quantity + 1})" class="bg-gray-200 w-8 h-8 rounded font-bold">+</button>
+                        <button onclick="removeItem('${item.id}')" class="ml-auto text-red-600 font-bold text-sm">Remove</button>
                     </div>
                 </div>
                 
-                <!-- Subtotal -->
-                <div class="text-right flex-shrink-0">
-                    <p class="text-xs md:text-sm text-gray-500">Subtotal</p>
-                    <p class="text-lg md:text-xl font-black text-gray-900">₹${subtotal}</p>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">Subtotal</p>
+                    <p class="font-black text-lg">₹${subtotal}</p>
                 </div>
             </div>
         `;
     });
     
-    container.innerHTML = itemsHTML;
-    console.log('✅ Items displayed');
-    
-    // Update summary
-    updateOrderSummary();
+    container.innerHTML = html;
+    updateSummary();
 }
 
-// ========================================
-// UPDATE QUANTITY
-// ========================================
-
-function updateItemQuantity(itemId, quantity) {
-    console.log('📝 Updating quantity for', itemId, 'to', quantity);
-    
-    if (quantity <= 0) {
-        if (confirm('Remove this item?')) {
-            removeFromCart(itemId);
-        }
+function updateQuantity(itemId, qty) {
+    if (qty <= 0) {
+        if (confirm('Remove this item?')) removeItem(itemId);
         return;
     }
-    
-    cart.updateQuantity(itemId, quantity);
+    cart.updateQuantity(itemId, qty);
     displayCartItems();
 }
 
-// ========================================
-// REMOVE ITEM
-// ========================================
-
-function removeFromCart(itemId) {
-    console.log('🗑️ Removing item:', itemId);
-    
+function removeItem(itemId) {
     cart.removeItem(itemId);
     displayCartItems();
-    updateCartBadges();
 }
 
 // ========================================
 // UPDATE ORDER SUMMARY
 // ========================================
 
-function updateOrderSummary() {
-    console.log('📊 Updating order summary...');
-    
+function updateSummary() {
     const subtotal = cart.getSubtotal();
     const total = subtotal + deliveryCharge;
     expectedAmount = total;
     
-    console.log('  Subtotal:', subtotal);
-    console.log('  Delivery:', deliveryCharge);
-    console.log('  Total:', total);
+    document.getElementById('subtotalAmount').textContent = `₹${subtotal}`;
+    document.getElementById('totalAmount').textContent = `₹${total}`;
+    document.getElementById('deliveryAmount').textContent = `₹${deliveryCharge}`;
+    document.getElementById('paymentAmount').textContent = `₹${total}`;
+    document.getElementById('qrAmount').textContent = total;
     
-    // Update summary display
-    const subtotalEl = document.getElementById('subtotalAmount');
-    const totalEl = document.getElementById('totalAmount');
-    const deliveryEl = document.getElementById('deliveryAmount');
-    
-    if (subtotalEl) subtotalEl.textContent = `₹${subtotal}`;
-    if (totalEl) totalEl.textContent = `₹${total}`;
-    if (deliveryEl) deliveryEl.textContent = `₹${deliveryCharge}`;
-    
-    // Update payment display
-    updatePaymentAmount(total);
-}
-
-// ========================================
-// UPDATE PAYMENT AMOUNT
-// ========================================
-
-function updatePaymentAmount(total) {
-    const paymentAmountEl = document.getElementById('paymentAmount');
-    const upiPayAmountEl = document.getElementById('upiPayAmount');
-    const qrAmountEl = document.getElementById('qrAmount');
-    
-    if (paymentAmountEl) paymentAmountEl.textContent = `₹${total}`;
-    if (upiPayAmountEl) upiPayAmountEl.textContent = total;
-    if (qrAmountEl) qrAmountEl.textContent = total;
-    
-    generateUPILink(total);
-}
-
-// ========================================
-// GENERATE UPI LINK AND QR
-// ========================================
-
-function generateUPILink(amount) {
+    // Generate QR with amount
     const upiId = '9972199259@okbizaxis';
-    const merchantName = 'Shreevari Snacks';
-    const transactionNote = `Order-${Date.now()}`;
-    
-    // UPI Intent URL
-    const upiURL = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    
-    // Update UPI button
-    const upiPayBtn = document.getElementById('upiPayBtn');
-    if (upiPayBtn) {
-        upiPayBtn.onclick = () => {
-            console.log('🔗 Opening UPI link with amount:', amount);
-            window.location.href = upiURL;
-        };
-    }
-    
-    // Generate QR code
+    const upiURL = `upi://pay?pa=${upiId}&pn=Shreevari%20Snacks&am=${total}&cu=INR`;
     const qrURL = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(upiURL)}&choe=UTF-8`;
     
     const qrImg = document.getElementById('paymentQR');
     if (qrImg) qrImg.src = qrURL;
-    
-    const upiIdEl = document.getElementById('upiId');
-    if (upiIdEl) upiIdEl.textContent = upiId;
 }
 
 // ========================================
-// UPDATE CART BADGES
-// ========================================
-
-function updateCartBadges() {
-    const count = cart.getItemCount();
-    console.log('🔔 Updating cart badge to:', count);
-    
-    const badge = document.getElementById('cartBadge');
-    const badgeMobile = document.getElementById('cartBadgeMobile');
-    
-    if (badge) {
-        if (count > 0) {
-            badge.textContent = count;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    }
-    
-    if (badgeMobile) {
-        if (count > 0) {
-            badgeMobile.textContent = count;
-            badgeMobile.classList.remove('hidden');
-        } else {
-            badgeMobile.classList.add('hidden');
-        }
-    }
-}
-
-// ========================================
-// GET LOCATION
+// LOCATION
 // ========================================
 
 if (document.getElementById('getLocationBtn')) {
@@ -279,13 +188,11 @@ if (document.getElementById('getLocationBtn')) {
         btn.disabled = true;
         
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            (pos) => {
                 customerLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
                 };
-                
-                console.log('✅ Got location:', customerLocation);
                 
                 const distance = calculateDistance(
                     RESTAURANT_LOCATION.lat,
@@ -294,12 +201,34 @@ if (document.getElementById('getLocationBtn')) {
                     customerLocation.lng
                 );
                 
-                displayDistanceInfo(distance);
+                console.log('Distance:', distance + 'km');
+                
+                const distInfo = document.getElementById('distanceInfo');
+                const outOfRange = document.getElementById('outOfRangeWarning');
+                
+                if (distance > 10) {
+                    if (outOfRange) outOfRange.classList.remove('hidden');
+                    if (distInfo) distInfo.classList.add('hidden');
+                    deliveryCharge = 0;
+                } else {
+                    if (outOfRange) outOfRange.classList.add('hidden');
+                    if (distInfo) distInfo.classList.remove('hidden');
+                    
+                    deliveryCharge = cart.calculateDeliveryCharge(distance);
+                    
+                    const distText = document.getElementById('distanceText');
+                    const delivChargeText = document.getElementById('deliveryChargeText');
+                    
+                    if (distText) distText.textContent = `${distance.toFixed(2)}km`;
+                    if (delivChargeText) delivChargeText.textContent = `₹${deliveryCharge}`;
+                }
+                
+                updateSummary();
                 btn.textContent = '✓ Location Set';
                 btn.disabled = false;
             },
             (error) => {
-                console.error('❌ Error getting location:', error);
+                console.error('Location error:', error);
                 alert('Unable to get location');
                 btn.textContent = '📍 Use Current Location';
                 btn.disabled = false;
@@ -309,78 +238,22 @@ if (document.getElementById('getLocationBtn')) {
 }
 
 // ========================================
-// DISPLAY DISTANCE INFO
-// ========================================
-
-function displayDistanceInfo(distance) {
-    console.log('📏 Distance:', distance + 'km');
-    
-    const distanceInfo = document.getElementById('distanceInfo');
-    const outOfRange = document.getElementById('outOfRangeWarning');
-    
-    if (distance > 10) {
-        console.warn('⚠️ Out of delivery range');
-        if (outOfRange) outOfRange.classList.remove('hidden');
-        if (distanceInfo) distanceInfo.classList.add('hidden');
-        deliveryCharge = 0;
-        return;
-    }
-    
-    if (outOfRange) outOfRange.classList.add('hidden');
-    if (distanceInfo) distanceInfo.classList.remove('hidden');
-    
-    deliveryCharge = cart.calculateDeliveryCharge(distance);
-    console.log('💰 Delivery charge:', deliveryCharge);
-    
-    const distanceText = document.getElementById('distanceText');
-    const deliveryChargeText = document.getElementById('deliveryChargeText');
-    
-    if (distanceText) distanceText.textContent = `${distance.toFixed(2)}km`;
-    if (deliveryChargeText) deliveryChargeText.textContent = `₹${deliveryCharge}`;
-    
-    updateOrderSummary();
-}
-
-// ========================================
-// PAYMENT METHOD TOGGLE
-// ========================================
-
-document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-        const upiSection = document.getElementById('upiSection');
-        const qrSection = document.getElementById('qrSection');
-        
-        if (!upiSection || !qrSection) return;
-        
-        if (e.target.value === 'upi') {
-            upiSection.classList.remove('hidden');
-            qrSection.classList.add('hidden');
-        } else {
-            upiSection.classList.add('hidden');
-            qrSection.classList.remove('hidden');
-        }
-    });
-});
-
-// ========================================
 // SCREENSHOT UPLOAD
 // ========================================
 
 if (document.getElementById('paymentScreenshot')) {
-    document.getElementById('paymentScreenshot').addEventListener('change', async (e) => {
+    document.getElementById('paymentScreenshot').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         
-        console.log('📷 Screenshot uploaded:', file.name);
-        
         if (!file.type.startsWith('image/')) {
-            alert('Please upload an image file');
+            alert('Please upload image');
             e.target.value = '';
             return;
         }
         
         if (file.size > 5 * 1024 * 1024) {
-            alert('Image size must be less than 5MB');
+            alert('Image too large (max 5MB)');
             e.target.value = '';
             return;
         }
@@ -397,8 +270,6 @@ if (document.getElementById('paymentScreenshot')) {
             
             const uploaded = document.getElementById('screenshotUploaded');
             if (uploaded) uploaded.classList.remove('hidden');
-            
-            console.log('✅ Screenshot ready');
         };
         reader.readAsDataURL(file);
     });
@@ -414,9 +285,8 @@ if (document.getElementById('checkoutForm')) {
         
         console.log('📤 Placing order...');
         
-        // Check login
         if (!currentUser) {
-            alert('⚠️ Please login to place an order');
+            alert('⚠️ Please login');
             window.location.href = 'login.html?redirect=cart.html';
             return;
         }
@@ -426,9 +296,8 @@ if (document.getElementById('checkoutForm')) {
         const address = document.getElementById('customerAddress').value;
         const transactionId = document.getElementById('transactionId').value.trim();
         
-        // Validations
         if (!customerLocation) {
-            alert('⚠️ Please set your location first');
+            alert('⚠️ Please set location');
             return;
         }
         
@@ -440,21 +309,20 @@ if (document.getElementById('checkoutForm')) {
         );
         
         if (distance > 10) {
-            alert('Sorry! We only deliver within 10km');
+            alert('Out of delivery range (10km)');
             return;
         }
         
         if (!transactionId || transactionId.length < 10) {
-            alert('⚠️ Please enter valid Transaction ID (minimum 10 digits)');
+            alert('⚠️ Enter valid Transaction ID (10+ digits)');
             return;
         }
         
         if (!paymentScreenshot) {
-            alert('⚠️ Please upload payment screenshot');
+            alert('⚠️ Upload payment screenshot');
             return;
         }
         
-        // Create order
         const orderData = {
             userId: currentUser.uid,
             customerName: name,
@@ -468,24 +336,26 @@ if (document.getElementById('checkoutForm')) {
             totalAmount: expectedAmount,
             transactionId: transactionId,
             paymentScreenshot: paymentScreenshot,
-            paymentMethod: document.querySelector('input[name="paymentMethod"]:checked')?.value || 'upi',
+            paymentMethod: 'qr',
             status: 'pending_verification',
             paymentVerified: false,
             createdAt: new Date().toISOString(),
             orderNumber: `ORD${Date.now()}`
         };
         
-        console.log('📦 Order data:', orderData);
-        
         try {
-            // Save to Firebase
+            // Wait for DB to be ready
+            if (typeof db === 'undefined') {
+                alert('System not ready. Please refresh.');
+                return;
+            }
+            
             await db.collection('orders').add(orderData);
             
-            console.log('✅ Order saved to Firebase!');
+            console.log('✅ Order saved!');
             
-            alert(`✅ Order Submitted!\n\nOrder #${orderData.orderNumber}\n\n⏳ Payment verification in progress...\n\nYou can track in your Profile.`);
+            alert(`✅ Order Submitted!\n\nOrder #${orderData.orderNumber}\n\n⏳ Verification in progress...`);
             
-            // Clear cart
             cart.clearCart();
             displayCartItems();
             document.getElementById('checkoutForm').reset();
@@ -493,48 +363,15 @@ if (document.getElementById('checkoutForm')) {
             customerLocation = null;
             deliveryCharge = 0;
             
-            if (document.getElementById('screenshotPreview')) {
-                document.getElementById('screenshotPreview').classList.add('hidden');
-            }
-            if (document.getElementById('screenshotUploaded')) {
-                document.getElementById('screenshotUploaded').classList.add('hidden');
-            }
-            
-            // Redirect to profile
             setTimeout(() => {
                 window.location.href = 'profile.html';
             }, 2000);
             
         } catch (error) {
-            console.error('❌ Error placing order:', error);
-            alert('❌ Error placing order. Please try again.');
+            console.error('❌ Error:', error);
+            alert('❌ Error: ' + error.message);
         }
     });
 }
 
-// ========================================
-// AUTO-RELOAD ON PAGE VISIBILITY
-// ========================================
-
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        console.log('📄 Page became visible, refreshing...');
-        displayCartItems();
-    }
-});
-
-window.addEventListener('focus', () => {
-    console.log('📄 Window focused, refreshing...');
-    displayCartItems();
-});
-
-// ========================================
-// CART UPDATE LISTENER
-// ========================================
-
-window.addEventListener('cartUpdated', () => {
-    console.log('🔄 Cart updated event received');
-    displayCartItems();
-});
-
-console.log('✅ Cart page fully loaded');
+console.log('✅ Cart page ready');
