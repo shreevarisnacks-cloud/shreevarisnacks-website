@@ -1,173 +1,326 @@
 // ========================================
-// LOGIN & SIGNUP SYSTEM
+// LOGIN & SIGNUP SYSTEM - COMPLETE
 // ========================================
 
-// Check if already logged in
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        // Already logged in - check if admin or customer
-        try {
-            const adminDoc = await db.collection('admins').doc(user.uid).get();
-            
-            if (adminDoc.exists) {
-                // Admin user
-                window.location.href = 'admin-dashboard.html';
-            } else {
-                // Regular customer - redirect to home or cart
-                const urlParams = new URLSearchParams(window.location.search);
-                const redirect = urlParams.get('redirect') || 'index.html';
-                window.location.href = redirect;
-            }
-        } catch (error) {
-            console.error('Error checking user type:', error);
-        }
+console.log('📄 Login page loaded');
+
+// Wait for Firebase
+function waitForAuth(callback, attempts = 0) {
+    if (attempts > 10) {
+        console.error('❌ Firebase not ready');
+        alert('System error. Please refresh page.');
+        return;
     }
+    
+    if (typeof auth !== 'undefined' && typeof db !== 'undefined') {
+        console.log('✅ Firebase ready');
+        callback();
+    } else {
+        console.log('⏳ Waiting for Firebase...');
+        setTimeout(() => waitForAuth(callback, attempts + 1), 500);
+    }
+}
+
+// Initialize when Firebase is ready
+waitForAuth(() => {
+    console.log('🚀 Initializing login system');
+    
+    // Check if already logged in
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            console.log('✅ User already logged in:', user.email);
+            
+            // Check if admin
+            checkUserType(user);
+        } else {
+            console.log('ℹ️ Not logged in, showing login form');
+        }
+    });
+    
+    setupEventListeners();
 });
 
-// Login form
-document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+// Setup event listeners
+function setupEventListeners() {
+    // LOGIN FORM
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+        console.log('✅ Login form ready');
+    }
+    
+    // SIGNUP FORM
+    const signupForm = document.getElementById('signupForm');
+    if (signupForm) {
+        signupForm.addEventListener('submit', handleSignup);
+        console.log('✅ Signup form ready');
+    }
+    
+    // TAB SWITCHING
+    const showSignupBtn = document.getElementById('showSignup');
+    if (showSignupBtn) {
+        showSignupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🔄 Switching to signup');
+            document.getElementById('loginFormContainer').classList.add('hidden');
+            document.getElementById('signupFormContainer').classList.remove('hidden');
+        });
+    }
+    
+    const showLoginBtn = document.getElementById('showLogin');
+    if (showLoginBtn) {
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🔄 Switching to login');
+            document.getElementById('signupFormContainer').classList.add('hidden');
+            document.getElementById('loginFormContainer').classList.remove('hidden');
+        });
+    }
+    
+    // FORGOT PASSWORD
+    const forgotPasswordBtn = document.getElementById('forgotPassword');
+    if (forgotPasswordBtn) {
+        forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+        console.log('✅ Forgot password button ready');
+    }
+}
+
+// ========================================
+// LOGIN
+// ========================================
+
+async function handleLogin(e) {
     e.preventDefault();
     
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    const email = document.getElementById('loginEmail')?.value;
+    const password = document.getElementById('loginPassword')?.value;
+    
+    if (!email || !password) {
+        alert('⚠️ Please enter email and password');
+        return;
+    }
+    
+    console.log('🔐 Logging in:', email);
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn?.textContent;
+    if (btn) btn.textContent = 'Logging in...';
     
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         const user = userCredential.user;
         
-        // Check if admin
-        const adminDoc = await db.collection('admins').doc(user.uid).get();
+        console.log('✅ Login successful:', user.email);
         
-        if (adminDoc.exists) {
-            // Admin login
-            window.location.href = 'admin-dashboard.html';
-        } else {
-            // Customer login
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect') || 'index.html';
-            window.location.href = redirect;
-        }
+        // Check user type
+        checkUserType(user);
         
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error.code, error.message);
         
-        let errorMessage = 'Login failed. ';
-        switch (error.code) {
-            case 'auth/user-not-found':
-                errorMessage += 'No account found with this email.';
-                break;
-            case 'auth/wrong-password':
-                errorMessage += 'Incorrect password.';
-                break;
-            case 'auth/invalid-email':
-                errorMessage += 'Invalid email address.';
-                break;
-            case 'auth/too-many-requests':
-                errorMessage += 'Too many failed attempts. Try again later.';
-                break;
-            default:
-                errorMessage += error.message;
+        let message = 'Login failed. ';
+        
+        if (error.code === 'auth/user-not-found') {
+            message += 'No account found with this email.';
+        } else if (error.code === 'auth/wrong-password') {
+            message += 'Incorrect password.';
+        } else if (error.code === 'auth/invalid-email') {
+            message += 'Invalid email address.';
+        } else if (error.code === 'auth/too-many-requests') {
+            message += 'Too many failed attempts. Try again later.';
+        } else if (error.code === 'auth/user-disabled') {
+            message += 'This account has been disabled.';
+        } else {
+            message += error.message;
         }
         
-        alert(errorMessage);
+        alert(message);
+    } finally {
+        if (btn) btn.textContent = originalText;
     }
-});
+}
 
-// Signup form
-document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
+// ========================================
+// SIGNUP
+// ========================================
+
+async function handleSignup(e) {
     e.preventDefault();
     
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
-    const phone = document.getElementById('signupPhone').value;
-    const password = document.getElementById('signupPassword').value;
-    const confirmPassword = document.getElementById('signupConfirmPassword').value;
+    const name = document.getElementById('signupName')?.value;
+    const email = document.getElementById('signupEmail')?.value;
+    const phone = document.getElementById('signupPhone')?.value;
+    const password = document.getElementById('signupPassword')?.value;
+    const confirmPassword = document.getElementById('signupConfirmPassword')?.value;
+    
+    console.log('📝 Signup attempt:', email);
     
     // Validation
+    if (!name || !email || !password || !confirmPassword) {
+        alert('⚠️ Please fill all fields');
+        return;
+    }
+    
     if (password !== confirmPassword) {
-        alert('Passwords do not match!');
+        alert('⚠️ Passwords do not match!');
         return;
     }
     
     if (password.length < 6) {
-        alert('Password must be at least 6 characters long');
+        alert('⚠️ Password must be at least 6 characters');
         return;
     }
     
     if (phone && !/^[0-9]{10}$/.test(phone)) {
-        alert('Please enter a valid 10-digit phone number');
+        alert('⚠️ Please enter a valid 10-digit phone number');
         return;
     }
     
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn?.textContent;
+    if (btn) btn.textContent = 'Creating account...';
+    
     try {
-        // Create user account
+        console.log('🔐 Creating user account...');
+        
+        // Create user
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
         
+        console.log('✅ Account created:', user.uid);
+        
         // Save customer data to Firestore
+        console.log('💾 Saving customer data...');
+        
         await db.collection('customers').doc(user.uid).set({
             name: name,
             email: email,
-            phone: phone,
+            phone: phone || '',
             createdAt: new Date().toISOString(),
             role: 'customer'
         });
         
-        alert('✅ Account created successfully!\n\nYou can now place orders.');
+        console.log('✅ Customer data saved');
         
-        // Redirect to cart or home
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirect = urlParams.get('redirect') || 'index.html';
-        window.location.href = redirect;
+        alert('✅ Account created successfully!\n\nYou can now login and place orders.');
+        
+        // Clear form
+        document.getElementById('signupForm').reset();
+        
+        // Switch to login
+        document.getElementById('signupFormContainer').classList.add('hidden');
+        document.getElementById('loginFormContainer').classList.remove('hidden');
+        
+        // Pre-fill login email
+        const loginEmailInput = document.getElementById('loginEmail');
+        if (loginEmailInput) loginEmailInput.value = email;
         
     } catch (error) {
-        console.error('Signup error:', error);
+        console.error('❌ Signup error:', error.code, error.message);
         
-        let errorMessage = 'Signup failed. ';
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                errorMessage += 'An account with this email already exists.';
-                break;
-            case 'auth/invalid-email':
-                errorMessage += 'Invalid email address.';
-                break;
-            case 'auth/weak-password':
-                errorMessage += 'Password is too weak. Use at least 6 characters.';
-                break;
-            default:
-                errorMessage += error.message;
+        let message = 'Signup failed. ';
+        
+        if (error.code === 'auth/email-already-in-use') {
+            message += 'An account with this email already exists. Please login instead.';
+        } else if (error.code === 'auth/invalid-email') {
+            message += 'Invalid email address.';
+        } else if (error.code === 'auth/weak-password') {
+            message += 'Password is too weak. Use at least 6 characters.';
+        } else if (error.code === 'auth/operation-not-allowed') {
+            message += 'Signup is not enabled. Contact admin.';
+        } else {
+            message += error.message;
         }
         
-        alert(errorMessage);
+        alert(message);
+    } finally {
+        if (btn) btn.textContent = originalText;
     }
-});
+}
 
-// Toggle between login and signup
-document.getElementById('showSignup')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('loginFormContainer').classList.add('hidden');
-    document.getElementById('signupFormContainer').classList.remove('hidden');
-});
+// ========================================
+// FORGOT PASSWORD
+// ========================================
 
-document.getElementById('showLogin')?.addEventListener('click', (e) => {
+async function handleForgotPassword(e) {
     e.preventDefault();
-    document.getElementById('signupFormContainer').classList.add('hidden');
-    document.getElementById('loginFormContainer').classList.remove('hidden');
-});
-
-// Password reset
-document.getElementById('forgotPassword')?.addEventListener('click', async (e) => {
-    e.preventDefault();
+    
+    console.log('🔑 Forgot password clicked');
     
     const email = prompt('Enter your email address:');
     
-    if (!email) return;
+    if (!email) {
+        console.log('❌ No email entered');
+        return;
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('⚠️ Please enter a valid email address');
+        return;
+    }
+    
+    console.log('📧 Sending password reset email to:', email);
     
     try {
         await auth.sendPasswordResetEmail(email);
-        alert('✅ Password reset email sent!\n\nCheck your inbox and follow the instructions.');
+        
+        console.log('✅ Password reset email sent');
+        
+        alert('✅ Password reset email sent!\n\n' +
+              'Check your inbox for a link to reset your password.\n\n' +
+              'If you don\'t see it in 5 minutes, check your spam folder.');
+        
     } catch (error) {
-        console.error('Password reset error:', error);
-        alert('Error sending password reset email. Please check the email address.');
+        console.error('❌ Password reset error:', error.code, error.message);
+        
+        let message = 'Error sending reset email. ';
+        
+        if (error.code === 'auth/user-not-found') {
+            message += 'No account found with this email.';
+        } else if (error.code === 'auth/invalid-email') {
+            message += 'Invalid email address.';
+        } else if (error.code === 'auth/too-many-requests') {
+            message += 'Too many attempts. Try again later.';
+        } else {
+            message += error.message;
+        }
+        
+        alert(message);
     }
-});
+}
+
+// ========================================
+// CHECK USER TYPE & REDIRECT
+// ========================================
+
+async function checkUserType(user) {
+    try {
+        console.log('🔍 Checking user type...');
+        
+        const adminDoc = await db.collection('admins').doc(user.uid).get();
+        
+        if (adminDoc.exists) {
+            console.log('👨‍💼 User is admin');
+            window.location.href = 'admin-dashboard.html';
+        } else {
+            console.log('👤 User is customer');
+            
+            // Get redirect URL from query params
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect') || 'index.html';
+            
+            console.log('🔀 Redirecting to:', redirect);
+            window.location.href = redirect;
+        }
+        
+    } catch (error) {
+        console.error('❌ Error checking user type:', error);
+        
+        // Default to customer view
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get('redirect') || 'index.html';
+        window.location.href = redirect;
+    }
+}
+
+console.log('✅ Login system loaded');
