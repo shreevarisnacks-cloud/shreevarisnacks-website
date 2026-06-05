@@ -1,5 +1,5 @@
 // ========================================
-// LOGIN & SIGNUP SYSTEM - COMPLETE
+// LOGIN & SIGNUP SYSTEM - COMPLETE & FIXED
 // ========================================
 
 console.log('📄 Login page loaded');
@@ -42,11 +42,15 @@ waitForAuth(() => {
 
 // Setup event listeners
 function setupEventListeners() {
+    console.log('⚙️ Setting up event listeners');
+    
     // LOGIN FORM
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
         console.log('✅ Login form ready');
+    } else {
+        console.error('❌ loginForm not found!');
     }
     
     // SIGNUP FORM
@@ -54,34 +58,69 @@ function setupEventListeners() {
     if (signupForm) {
         signupForm.addEventListener('submit', handleSignup);
         console.log('✅ Signup form ready');
+    } else {
+        console.error('❌ signupForm not found!');
     }
     
-    // TAB SWITCHING
+    // SHOW SIGNUP - Open modal
     const showSignupBtn = document.getElementById('showSignup');
     if (showSignupBtn) {
         showSignupBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('🔄 Switching to signup');
-            document.getElementById('loginFormContainer').classList.add('hidden');
-            document.getElementById('signupFormContainer').classList.remove('hidden');
+            console.log('🔄 Opening signup modal');
+            const modal = document.getElementById('signupModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Clear form
+                if (signupForm) signupForm.reset();
+            }
         });
+        console.log('✅ Show signup button ready');
+    } else {
+        console.error('❌ showSignup button not found!');
     }
     
-    const showLoginBtn = document.getElementById('showLogin');
-    if (showLoginBtn) {
-        showLoginBtn.addEventListener('click', (e) => {
+    // CLOSE SIGNUP - Close modal
+    const closeSignupBtn = document.getElementById('closeSignup');
+    if (closeSignupBtn) {
+        closeSignupBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('🔄 Switching to login');
-            document.getElementById('signupFormContainer').classList.add('hidden');
-            document.getElementById('loginFormContainer').classList.remove('hidden');
+            console.log('🔄 Closing signup modal');
+            const modal = document.getElementById('signupModal');
+            if (modal) modal.classList.add('hidden');
+        });
+        console.log('✅ Close signup button ready');
+    } else {
+        console.error('❌ closeSignup button not found!');
+    }
+    
+    // Close modal when clicking outside
+    const signupModal = document.getElementById('signupModal');
+    if (signupModal) {
+        signupModal.addEventListener('click', (e) => {
+            if (e.target === signupModal) {
+                console.log('🔄 Closing modal (clicked outside)');
+                signupModal.classList.add('hidden');
+            }
         });
     }
     
-    // FORGOT PASSWORD
+    // FORGOT PASSWORD - FIXED!
     const forgotPasswordBtn = document.getElementById('forgotPassword');
     if (forgotPasswordBtn) {
         forgotPasswordBtn.addEventListener('click', handleForgotPassword);
         console.log('✅ Forgot password button ready');
+    } else {
+        console.error('❌ forgotPassword button not found!');
+    }
+    
+    // MOBILE MENU
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            const menu = document.getElementById('mobileMenu');
+            if (menu) menu.classList.toggle('hidden');
+        });
     }
 }
 
@@ -157,7 +196,7 @@ async function handleSignup(e) {
     
     // Validation
     if (!name || !email || !password || !confirmPassword) {
-        alert('⚠️ Please fill all fields');
+        alert('⚠️ Please fill all required fields (marked with *)');
         return;
     }
     
@@ -183,7 +222,7 @@ async function handleSignup(e) {
     try {
         console.log('🔐 Creating user account...');
         
-        // Create user
+        // Create user in Firebase Auth
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
         
@@ -204,16 +243,21 @@ async function handleSignup(e) {
         
         alert('✅ Account created successfully!\n\nYou can now login and place orders.');
         
-        // Clear form
-        document.getElementById('signupForm').reset();
+        // Close modal
+        const modal = document.getElementById('signupModal');
+        if (modal) modal.classList.add('hidden');
         
-        // Switch to login
-        document.getElementById('signupFormContainer').classList.add('hidden');
-        document.getElementById('loginFormContainer').classList.remove('hidden');
+        // Clear form
+        const signupForm = document.getElementById('signupForm');
+        if (signupForm) signupForm.reset();
         
         // Pre-fill login email
         const loginEmailInput = document.getElementById('loginEmail');
         if (loginEmailInput) loginEmailInput.value = email;
+        
+        // Focus on password field
+        const loginPasswordInput = document.getElementById('loginPassword');
+        if (loginPasswordInput) loginPasswordInput.focus();
         
     } catch (error) {
         console.error('❌ Signup error:', error.code, error.message);
@@ -239,11 +283,11 @@ async function handleSignup(e) {
 }
 
 // ========================================
-// FORGOT PASSWORD
+// FORGOT PASSWORD - WORKING!
 // ========================================
 
 async function handleForgotPassword(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     console.log('🔑 Forgot password clicked');
     
