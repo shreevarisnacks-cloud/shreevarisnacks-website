@@ -61,6 +61,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             content.classList.add('hidden');
         });
         document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+        
+        // Load content for specific tabs - THIS WAS MISSING!
+        if (tabName === 'orders') {
+            console.log('📦 Loading orders when tab clicked...');
+            loadOrders();
+        }
     });
 });
 
