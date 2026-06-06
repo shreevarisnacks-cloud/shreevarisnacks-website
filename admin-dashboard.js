@@ -962,3 +962,351 @@ async function deleteOrder(orderId) {
 
 // Load orders when orders tab is clicked
 document.querySelector('button[data-tab="orders"]').addEventListener('click', loadOrders);
+
+// ========================================
+// ADMIN ORDERS MANAGEMENT - FIX FOR DASHBOARD
+// ========================================
+// 
+// ADD THIS TO THE END OF admin-dashboard.js
+// (If you already have ADMIN-ORDERS-CODE.js, replace it with this updated version)
+
+// ========================================
+// LOAD ORDERS
+// ========================================
+
+async function loadOrders() {
+    console.log('📦 Loading orders...');
+    
+    try {
+        const ordersRef = db.collection('orders');
+        const snapshot = await ordersRef
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+        
+        console.log(`📦 Found ${snapshot.docs.length} orders`);
+        
+        const ordersList = document.getElementById('ordersList');
+        if (!ordersList) {
+            console.error('❌ ordersList element not found!');
+            return;
+        }
+        
+        ordersList.innerHTML = '';
+        
+        if (snapshot.empty) {
+            ordersList.innerHTML = '<p class="text-gray-500 text-center py-8">No orders yet</p>';
+            return;
+        }
+        
+        snapshot.forEach((doc) => {
+            const order = doc.data();
+            const orderCard = createAdminOrderCard(doc.id, order);
+            ordersList.appendChild(orderCard);
+        });
+        
+        console.log('✅ Orders loaded successfully');
+        
+    } catch (error) {
+        console.error('❌ Error loading orders:', error);
+        alert('Error loading orders: ' + error.message);
+    }
+}
+
+// ========================================
+// CREATE ORDER CARD
+// ========================================
+
+function createAdminOrderCard(orderId, order) {
+    console.log('Creating card for order:', orderId);
+    
+    const statusColor = {
+        'pending_verification': 'border-yellow-500 bg-yellow-50',
+        'verified': 'border-blue-500 bg-blue-50',
+        'preparing': 'border-purple-500 bg-purple-50',
+        'out_for_delivery': 'border-orange-500 bg-orange-50',
+        'delivered': 'border-green-500 bg-green-50',
+        'rejected': 'border-red-500 bg-red-50'
+    };
+    
+    const statusText = {
+        'pending_verification': '⏳ Pending Verification',
+        'verified': '✅ Verified',
+        'preparing': '👨‍🍳 Preparing',
+        'out_for_delivery': '🚗 Out for Delivery',
+        'delivered': '🎉 Delivered',
+        'rejected': '❌ Rejected'
+    };
+    
+    const borderClass = statusColor[order.status] || statusColor['pending_verification'];
+    const statusDisplay = statusText[order.status] || order.status;
+    
+    const card = document.createElement('div');
+    card.className = `border-l-4 ${borderClass} rounded-xl p-6 mb-4 shadow-md`;
+    
+    const itemsList = order.orderItems
+        .map(item => `<li class="text-sm text-gray-600">• ${item.quantity}x ${item.name} @ ₹${item.price}</li>`)
+        .join('');
+    
+    let buttonHtml = '';
+    
+    if (order.status === 'pending_verification') {
+        buttonHtml = `
+            <div class="flex gap-2 mt-4">
+                <button onclick="verifyPayment('${orderId}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold text-sm transition">
+                    ✅ Verify Payment
+                </button>
+                <button onclick="rejectPayment('${orderId}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-bold text-sm transition">
+                    ❌ Reject
+                </button>
+                <button onclick="viewPaymentProof('${orderId}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold text-sm transition">
+                    📸 View Proof
+                </button>
+            </div>
+        `;
+    } else if (order.status === 'verified' || order.status === 'preparing') {
+        buttonHtml = `
+            <div class="flex gap-2 mt-4">
+                <button onclick="setDeliveryTime('${orderId}')" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-bold text-sm transition">
+                    ⏰ Set Delivery Time
+                </button>
+                <button onclick="updateOrderStatus('${orderId}')" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold text-sm transition">
+                    📋 Update Status
+                </button>
+            </div>
+        `;
+    } else if (order.status === 'out_for_delivery') {
+        buttonHtml = `
+            <div class="flex gap-2 mt-4">
+                <button onclick="updateOrderStatus('${orderId}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold text-sm transition">
+                    ✅ Mark Delivered
+                </button>
+            </div>
+        `;
+    }
+    
+    card.innerHTML = `
+        <div class="flex justify-between items-start mb-3">
+            <div>
+                <p class="font-bold text-lg text-gray-900">Order #${order.orderNumber}</p>
+                <p class="text-xs text-gray-600">ID: ${orderId.substring(0, 12)}...</p>
+            </div>
+            <span class="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-xs font-bold">
+                ${statusDisplay}
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div>
+                <p class="text-gray-600">👤 Customer</p>
+                <p class="font-bold">${order.customerName}</p>
+                <p class="text-xs text-gray-500">${order.phone}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">💰 Amount</p>
+                <p class="font-bold text-orange-600">₹${order.totalAmount}</p>
+                <p class="text-xs text-gray-500">Delivery: ₹${order.deliveryCharge}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">📍 Location</p>
+                <p class="font-bold">${order.address}</p>
+                <p class="text-xs text-gray-500">${order.distance}km away</p>
+            </div>
+            <div>
+                <p class="text-gray-600">🕐 Time</p>
+                <p class="font-bold text-sm">${new Date(order.createdAt).toLocaleString()}</p>
+                ${order.deliveryTime ? `<p class="text-xs text-green-600">Delivery: ${order.deliveryTime}</p>` : ''}
+            </div>
+        </div>
+        
+        <div class="border-t border-gray-300 pt-3 mb-3">
+            <p class="font-bold text-gray-700 mb-2">Items:</p>
+            <ul class="list-none">
+                ${itemsList}
+            </ul>
+        </div>
+        
+        <div class="bg-white rounded-lg p-3 mb-3">
+            <p class="font-bold text-gray-700 mb-1">Payment Info:</p>
+            <p class="text-sm text-gray-600">Transaction ID: <span class="font-mono font-bold">${order.transactionId}</span></p>
+            <p class="text-sm text-gray-600">Method: ${order.paymentMethod === 'qr' ? '📱 QR Code' : '💳 UPI'}</p>
+            <p class="text-sm text-gray-600">Verified: ${order.paymentVerified ? '✅ Yes' : '⏳ Pending'}</p>
+        </div>
+        
+        ${buttonHtml}
+    `;
+    
+    return card;
+}
+
+// ========================================
+// VERIFY PAYMENT
+// ========================================
+
+async function verifyPayment(orderId) {
+    const deliveryTime = prompt('Enter delivery time (e.g., 30 mins, 45 mins):');
+    
+    if (!deliveryTime) return;
+    
+    console.log('✅ Verifying payment for order:', orderId);
+    
+    try {
+        await db.collection('orders').doc(orderId).update({
+            paymentVerified: true,
+            status: 'verified',
+            deliveryTime: deliveryTime,
+            verifiedAt: new Date().toISOString()
+        });
+        
+        console.log('✅ Payment verified');
+        alert('✅ Payment verified!\nDelivery time set to: ' + deliveryTime);
+        loadOrders();
+        
+    } catch (error) {
+        console.error('❌ Error verifying payment:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// ========================================
+// REJECT PAYMENT
+// ========================================
+
+async function rejectPayment(orderId) {
+    const reason = prompt('Reason for rejection:');
+    
+    if (!reason) return;
+    
+    console.log('❌ Rejecting payment for order:', orderId);
+    
+    try {
+        await db.collection('orders').doc(orderId).update({
+            status: 'rejected',
+            rejectionReason: reason,
+            rejectedAt: new Date().toISOString()
+        });
+        
+        console.log('✅ Payment rejected');
+        alert('❌ Order rejected.\nReason: ' + reason);
+        loadOrders();
+        
+    } catch (error) {
+        console.error('❌ Error rejecting payment:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// ========================================
+// VIEW PAYMENT PROOF
+// ========================================
+
+function viewPaymentProof(orderId) {
+    console.log('📸 Viewing payment proof for:', orderId);
+    
+    db.collection('orders').doc(orderId).get().then(doc => {
+        const order = doc.data();
+        
+        if (!order.paymentScreenshot) {
+            alert('No payment screenshot available');
+            return;
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4';
+        modal.onclick = () => modal.remove();
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-96 overflow-auto" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Payment Proof - Order #${order.orderNumber}</h2>
+                    <button onclick="this.closest('.fixed').remove()" class="text-2xl">✕</button>
+                </div>
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-2">Transaction ID: <span class="font-bold">${order.transactionId}</span></p>
+                    <p class="text-sm text-gray-600">Amount: <span class="font-bold">₹${order.totalAmount}</span></p>
+                </div>
+                <img src="${order.paymentScreenshot}" alt="Payment proof" class="w-full rounded-xl border-2 border-gray-300">
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    });
+}
+
+// ========================================
+// SET DELIVERY TIME
+// ========================================
+
+async function setDeliveryTime(orderId) {
+    const deliveryTime = prompt('Enter delivery time (e.g., 30 mins, 45 mins):');
+    
+    if (!deliveryTime) return;
+    
+    console.log('⏰ Setting delivery time:', deliveryTime);
+    
+    try {
+        await db.collection('orders').doc(orderId).update({
+            deliveryTime: deliveryTime,
+            status: 'preparing'
+        });
+        
+        console.log('✅ Delivery time set');
+        alert('✅ Delivery time: ' + deliveryTime);
+        loadOrders();
+        
+    } catch (error) {
+        console.error('❌ Error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// ========================================
+// UPDATE ORDER STATUS
+// ========================================
+
+async function updateOrderStatus(orderId) {
+    const statuses = ['preparing', 'out_for_delivery', 'delivered'];
+    const current = (await db.collection('orders').doc(orderId).get()).data().status;
+    
+    const currentIndex = statuses.indexOf(current);
+    const nextIndex = (currentIndex + 1) % statuses.length;
+    const nextStatus = statuses[nextIndex];
+    
+    const statusText = {
+        'preparing': '👨‍🍳 Preparing',
+        'out_for_delivery': '🚗 Out for Delivery',
+        'delivered': '🎉 Delivered'
+    };
+    
+    console.log('📋 Updating status to:', nextStatus);
+    
+    try {
+        await db.collection('orders').doc(orderId).update({
+            status: nextStatus,
+            updatedAt: new Date().toISOString()
+        });
+        
+        console.log('✅ Status updated');
+        alert('✅ Status updated to: ' + statusText[nextStatus]);
+        loadOrders();
+        
+    } catch (error) {
+        console.error('❌ Error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// ========================================
+// AUTO-REFRESH ORDERS
+// ========================================
+
+// Refresh orders every 30 seconds when admin dashboard is open
+setInterval(() => {
+    const ordersTab = document.getElementById('ordersTab');
+    if (ordersTab && !ordersTab.classList.contains('hidden')) {
+        console.log('🔄 Auto-refreshing orders...');
+        loadOrders();
+    }
+}, 30000);
+
+console.log('✅ Admin Orders Management loaded');
