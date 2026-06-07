@@ -768,142 +768,121 @@ document.getElementById('cancelBannerEdit').addEventListener('click', () => {
 // Load banners when banners tab is clicked
 document.querySelector('button[data-tab="banners"]').addEventListener('click', loadBanners);
 // ========================================
-// ORDERS MANAGEMENT
+// ORGANIZED ORDERS BY STATUS
 // ========================================
 
-// Load Orders
-async function loadOrders() {
-    const ordersList = document.getElementById('ordersList');
-    
-    try {
-        const ordersSnapshot = await db.collection('orders')
-            .orderBy('createdAt', 'desc')
-            .limit(50)
-            .get();
+console.log('📦 Loading organized orders...');
 
-        if (ordersSnapshot.empty) {
-            ordersList.innerHTML = '<p class="text-gray-500 text-center py-8">No orders yet.</p>';
-            return;
-        }
-
-        let ordersHTML = '';
-        ordersSnapshot.forEach(doc => {
-            const order = doc.data();
-            const statusColor = {
-                'pending': 'bg-yellow-100 text-yellow-800',
-                'accepted': 'bg-blue-100 text-blue-800',
-                'preparing': 'bg-purple-100 text-purple-800',
-                'out_for_delivery': 'bg-orange-100 text-orange-800',
-                'delivered': 'bg-green-100 text-green-800',
-                'cancelled': 'bg-red-100 text-red-800'
-            }[order.status] || 'bg-gray-100 text-gray-800';
-            
-            ordersHTML += `
-                <div class="bg-white border-2 border-gray-200 rounded-xl p-4">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="font-bold text-lg">${order.customerName}</h3>
-                            <p class="text-sm text-gray-600">📞 ${order.phone}</p>
-                            <p class="text-sm text-gray-600">📍 ${order.address}</p>
-                        </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-bold ${statusColor}">
-                            ${order.status ? order.status.replace('_', ' ').toUpperCase() : 'PENDING'}
-                        </span>
-                    </div>
-                    
-                    <div class="bg-gray-50 rounded-lg p-3 mb-3">
-                        <p class="text-sm font-semibold text-gray-700">Order Details:</p>
-                        <p class="text-sm text-gray-600 whitespace-pre-line">${order.orderDetails}</p>
-                    </div>
-                    
-                    <div class="flex justify-between items-center mb-3">
-                        <div>
-                            <p class="text-sm text-gray-600">Amount: <span class="font-bold text-gray-900">₹${order.amount}</span></p>
-                            <p class="text-sm text-gray-600">Payment: <span class="font-semibold ${order.paymentStatus === 'received' ? 'text-green-600' : 'text-yellow-600'}">${order.paymentStatus || 'Pending'}</span></p>
-                        </div>
-                        ${order.deliveryTime ? `
-                            <div class="text-right">
-                                <p class="text-sm text-gray-600">Delivery Time:</p>
-                                <p class="font-bold text-orange-600">${order.deliveryTime}</p>
-                            </div>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="flex gap-2">
-                        ${!order.deliveryTime ? `
-                            <button onclick="setDeliveryTime('${doc.id}')" 
-                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-                                ⏰ Set Delivery Time
-                            </button>
-                        ` : ''}
-                        
-                        <button onclick="updateOrderStatus('${doc.id}', '${order.status}')" 
-                                class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-                            Update Status
-                        </button>
-                        
-                        <button onclick="deleteOrder('${doc.id}')" 
-                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-
-        ordersList.innerHTML = ordersHTML;
-    } catch (error) {
-        console.error('Error loading orders:', error);
-        ordersList.innerHTML = '<p class="text-red-500 text-center">Error loading orders</p>';
-    }
-}
+// Store for organizing orders by status
+const ordersByStatus = {
+    pending_verification: [],
+    preparing: [],
+    out_for_delivery: [],
+    delivered: [],
+    rejected: []
+};
 
 // ========================================
-// ONLY ORDERS 
-
-console.log('📦 Loading orders module...');
-
-// ========================================
-// LOAD ORDERS
+// LOAD ORDERS - ORGANIZED BY STATUS
 // ========================================
 
 async function loadOrders() {
     console.log('📦 Loading orders from Firestore...');
     
     try {
+        // Clear previous data
+        Object.keys(ordersByStatus).forEach(status => {
+            ordersByStatus[status] = [];
+        });
+        
         const ordersRef = db.collection('orders');
         const snapshot = await ordersRef
             .orderBy('createdAt', 'desc')
-            .limit(50)
+            .limit(100)
             .get();
         
         console.log(`✅ Found ${snapshot.docs.length} orders`);
         
-        const ordersList = document.getElementById('ordersList');
-        if (!ordersList) {
-            console.error('❌ ordersList element not found! Make sure HTML has id="ordersList"');
-            return;
-        }
-        
-        ordersList.innerHTML = '';
-        
-        if (snapshot.empty) {
-            ordersList.innerHTML = '<p class="text-gray-500 text-center py-8">No orders yet</p>';
-            return;
-        }
-        
+        // Organize orders by status
         snapshot.forEach((doc) => {
             const order = doc.data();
-            const orderCard = createAdminOrderCard(doc.id, order);
-            ordersList.appendChild(orderCard);
+            const status = order.status || 'pending_verification';
+            
+            if (ordersByStatus[status]) {
+                ordersByStatus[status].push({ id: doc.id, ...order });
+            }
         });
         
-        console.log('✅ Orders displayed successfully');
+        // Display organized orders
+        displayOrganizedOrders();
+        
+        console.log('✅ Orders organized and displayed');
         
     } catch (error) {
         console.error('❌ Error loading orders:', error);
-        document.getElementById('ordersList').innerHTML = '<p class="text-red-500">Error loading orders: ' + error.message + '</p>';
+        alert('Error loading orders: ' + error.message);
     }
+}
+
+// ========================================
+// DISPLAY ORGANIZED ORDERS
+// ========================================
+
+function displayOrganizedOrders() {
+    console.log('🎨 Displaying organized orders...');
+    
+    const ordersContainer = document.getElementById('ordersContainer');
+    if (!ordersContainer) {
+        console.error('❌ ordersContainer not found!');
+        return;
+    }
+    
+    ordersContainer.innerHTML = '';
+    
+    // Define sections
+    const sections = [
+        { status: 'pending_verification', title: '🔴 NEW ORDERS - PENDING VERIFICATION', color: 'yellow' },
+        { status: 'preparing', title: '🟠 PREPARING', color: 'purple' },
+        { status: 'out_for_delivery', title: '🟡 OUT FOR DELIVERY', color: 'orange' },
+        { status: 'delivered', title: '🟢 DELIVERED', color: 'green' },
+        { status: 'rejected', title: '⚫ REJECTED/HISTORY', color: 'red' }
+    ];
+    
+    // Create section for each status
+    sections.forEach(section => {
+        const orders = ordersByStatus[section.status];
+        
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'mb-8';
+        
+        sectionDiv.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">${section.title}</h2>
+                    <span class="bg-gray-200 text-gray-800 rounded-full px-4 py-2 font-bold">
+                        ${orders.length} order${orders.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+                
+                <div id="${section.status}List" class="space-y-4">
+                    ${orders.length === 0 ? 
+                        `<p class="text-gray-500 text-center py-8">No orders in this status</p>` : 
+                        ''}
+                </div>
+            </div>
+        `;
+        
+        ordersContainer.appendChild(sectionDiv);
+        
+        // Add order cards to this section
+        const listDiv = sectionDiv.querySelector(`#${section.status}List`);
+        if (listDiv && orders.length > 0) {
+            orders.forEach(order => {
+                const card = createAdminOrderCard(order.id, order);
+                listDiv.appendChild(card);
+            });
+        }
+    });
 }
 
 // ========================================
@@ -911,66 +890,61 @@ async function loadOrders() {
 // ========================================
 
 function createAdminOrderCard(orderId, order) {
-    const statusColor = {
-        'pending_verification': 'border-yellow-500 bg-yellow-50',
-        'verified': 'border-blue-500 bg-blue-50',
-        'preparing': 'border-purple-500 bg-purple-50',
-        'out_for_delivery': 'border-orange-500 bg-orange-50',
-        'delivered': 'border-green-500 bg-green-50',
-        'rejected': 'border-red-500 bg-red-50'
+    const statusEmoji = {
+        'pending_verification': '⏳',
+        'verified': '✅',
+        'preparing': '👨‍🍳',
+        'out_for_delivery': '🚗',
+        'delivered': '🎉',
+        'rejected': '❌'
     };
     
     const statusText = {
-        'pending_verification': '⏳ Pending Verification',
-        'verified': '✅ Verified',
-        'preparing': '👨‍🍳 Preparing',
-        'out_for_delivery': '🚗 Out for Delivery',
-        'delivered': '🎉 Delivered',
-        'rejected': '❌ Rejected'
+        'pending_verification': 'Pending Verification',
+        'verified': 'Verified',
+        'preparing': 'Preparing',
+        'out_for_delivery': 'Out for Delivery',
+        'delivered': 'Delivered',
+        'rejected': 'Rejected'
     };
     
-    const borderClass = statusColor[order.status] || statusColor['pending_verification'];
-    const statusDisplay = statusText[order.status] || order.status;
-    
     const card = document.createElement('div');
-    card.className = `border-l-4 ${borderClass} rounded-xl p-6 mb-4 shadow-md`;
+    card.className = 'border-l-4 border-gray-300 bg-gray-50 rounded-xl p-6 mb-4 shadow-md hover:shadow-lg transition';
     
-    const itemsList = order.orderItems
+    const itemsList = (order.orderItems || [])
         .map(item => `<li class="text-sm text-gray-600">• ${item.quantity}x ${item.name} @ ₹${item.price}</li>`)
         .join('');
     
     let buttonHtml = '';
     
+    // Action buttons based on status
     if (order.status === 'pending_verification') {
         buttonHtml = `
             <div class="flex gap-2 mt-4 flex-wrap">
                 <button onclick="verifyPayment('${orderId}')" class="flex-1 min-w-max bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
-                    ✅ Verify
+                    ✅ Verify & Set Time
                 </button>
                 <button onclick="rejectPayment('${orderId}')" class="flex-1 min-w-max bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
                     ❌ Reject
                 </button>
                 <button onclick="viewPaymentProof('${orderId}')" class="flex-1 min-w-max bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
-                    📸 View
+                    📸 View Screenshot
                 </button>
             </div>
         `;
-    } else if (order.status === 'verified' || order.status === 'preparing') {
+    } else if (order.status === 'preparing') {
         buttonHtml = `
             <div class="flex gap-2 mt-4 flex-wrap">
-                <button onclick="setDeliveryTime('${orderId}')" class="flex-1 min-w-max bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
-                    ⏰ Delivery
-                </button>
-                <button onclick="updateOrderStatus('${orderId}')" class="flex-1 min-w-max bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
-                    📋 Update
+                <button onclick="markOutForDelivery('${orderId}')" class="flex-1 min-w-max bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
+                    🚗 Out for Delivery
                 </button>
             </div>
         `;
     } else if (order.status === 'out_for_delivery') {
         buttonHtml = `
-            <div class="flex gap-2 mt-4">
-                <button onclick="updateOrderStatus('${orderId}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
-                    ✅ Delivered
+            <div class="flex gap-2 mt-4 flex-wrap">
+                <button onclick="markDelivered('${orderId}')" class="flex-1 min-w-max bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-bold text-sm transition">
+                    ✅ Mark Delivered
                 </button>
             </div>
         `;
@@ -980,45 +954,47 @@ function createAdminOrderCard(orderId, order) {
         <div class="flex justify-between items-start mb-3">
             <div>
                 <p class="font-bold text-lg text-gray-900">Order #${order.orderNumber}</p>
-                <p class="text-xs text-gray-600">ID: ${orderId.substring(0, 12)}...</p>
+                <p class="text-xs text-gray-600">${new Date(order.createdAt).toLocaleString()}</p>
             </div>
-            <span class="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-xs font-bold">
-                ${statusDisplay}
+            <span class="px-3 py-1 bg-gray-300 text-gray-800 rounded-full text-sm font-bold">
+                ${statusEmoji[order.status] || ''} ${statusText[order.status] || order.status}
             </span>
         </div>
         
-        <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+        <div class="grid grid-cols-2 gap-3 mb-4 text-sm bg-white rounded-lg p-3">
             <div>
-                <p class="text-gray-600">👤 Customer</p>
+                <p class="text-gray-600 font-semibold">👤 Customer</p>
                 <p class="font-bold">${order.customerName}</p>
                 <p class="text-xs text-gray-500">${order.phone}</p>
             </div>
             <div>
-                <p class="text-gray-600">💰 Amount</p>
-                <p class="font-bold text-orange-600">₹${order.totalAmount}</p>
+                <p class="text-gray-600 font-semibold">💰 Amount</p>
+                <p class="font-bold text-orange-600 text-lg">₹${order.totalAmount}</p>
                 <p class="text-xs text-gray-500">Delivery: ₹${order.deliveryCharge}</p>
             </div>
             <div>
-                <p class="text-gray-600">📍 Location</p>
-                <p class="font-bold">${order.address}</p>
-                <p class="text-xs text-gray-500">${order.distance}km</p>
+                <p class="text-gray-600 font-semibold">📍 Address</p>
+                <p class="font-bold text-sm">${order.address}</p>
+                <p class="text-xs text-gray-500">${order.distance}km away</p>
             </div>
             <div>
-                <p class="text-gray-600">🕐 Time</p>
-                <p class="font-bold text-sm">${new Date(order.createdAt).toLocaleString()}</p>
+                <p class="text-gray-600 font-semibold">🕐 Delivery Time</p>
+                <p class="font-bold text-sm">${order.deliveryTime || 'Not set'}</p>
+                ${order.deliveryTime ? `<p class="text-xs text-green-600">✅ Set</p>` : '<p class="text-xs text-gray-500">Pending</p>'}
             </div>
         </div>
         
         <div class="border-t border-gray-300 pt-3 mb-3">
-            <p class="font-bold text-gray-700 mb-1">Items:</p>
-            <ul class="list-none">
+            <p class="font-bold text-gray-700 mb-2">📦 Items:</p>
+            <ul class="list-none space-y-1">
                 ${itemsList}
             </ul>
         </div>
         
-        <div class="bg-gray-50 rounded-lg p-3 mb-3">
-            <p class="text-sm text-gray-600">Transaction ID: <span class="font-mono font-bold">${order.transactionId}</span></p>
-            <p class="text-sm text-gray-600">Verified: ${order.paymentVerified ? '✅ Yes' : '⏳ Pending'}</p>
+        <div class="bg-white rounded-lg p-3 mb-3">
+            <p class="font-bold text-gray-700 mb-1">💳 Payment Info:</p>
+            <p class="text-sm text-gray-600">UTR/TXN: <span class="font-mono font-bold">${order.transactionId}</span></p>
+            <p class="text-sm text-gray-600">Status: ${order.paymentVerified ? '✅ Verified' : '⏳ Pending'}</p>
         </div>
         
         ${buttonHtml}
@@ -1028,44 +1004,34 @@ function createAdminOrderCard(orderId, order) {
 }
 
 // ========================================
-// VERIFY PAYMENT
+// ACTION FUNCTIONS
 // ========================================
 
 async function verifyPayment(orderId) {
-    const deliveryTime = prompt('Enter delivery time (e.g., 30 mins, 45 mins):');
+    const deliveryTime = prompt('Enter delivery time (e.g., 30 mins, 45 mins, 1 hour):');
     
     if (!deliveryTime) return;
-    
-    console.log('✅ Verifying payment for order:', orderId);
     
     try {
         await db.collection('orders').doc(orderId).update({
             paymentVerified: true,
-            status: 'verified',
+            status: 'preparing',
             deliveryTime: deliveryTime,
             verifiedAt: new Date().toISOString()
         });
         
-        console.log('✅ Payment verified');
         alert('✅ Payment verified!\nDelivery time: ' + deliveryTime);
         loadOrders();
         
     } catch (error) {
-        console.error('❌ Error:', error);
         alert('Error: ' + error.message);
     }
 }
-
-// ========================================
-// REJECT PAYMENT
-// ========================================
 
 async function rejectPayment(orderId) {
     const reason = prompt('Reason for rejection:');
     
     if (!reason) return;
-    
-    console.log('❌ Rejecting payment for order:', orderId);
     
     try {
         await db.collection('orders').doc(orderId).update({
@@ -1074,23 +1040,45 @@ async function rejectPayment(orderId) {
             rejectedAt: new Date().toISOString()
         });
         
-        console.log('✅ Payment rejected');
         alert('❌ Order rejected.\nReason: ' + reason);
         loadOrders();
         
     } catch (error) {
-        console.error('❌ Error:', error);
         alert('Error: ' + error.message);
     }
 }
 
-// ========================================
-// VIEW PAYMENT PROOF
-// ========================================
+async function markOutForDelivery(orderId) {
+    try {
+        await db.collection('orders').doc(orderId).update({
+            status: 'out_for_delivery',
+            updatedAt: new Date().toISOString()
+        });
+        
+        alert('🚗 Marked as Out for Delivery!');
+        loadOrders();
+        
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function markDelivered(orderId) {
+    try {
+        await db.collection('orders').doc(orderId).update({
+            status: 'delivered',
+            deliveredAt: new Date().toISOString()
+        });
+        
+        alert('🎉 Order Delivered!');
+        loadOrders();
+        
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
 
 function viewPaymentProof(orderId) {
-    console.log('📸 Viewing payment proof for:', orderId);
-    
     db.collection('orders').doc(orderId).get().then(doc => {
         const order = doc.data();
         
@@ -1106,11 +1094,12 @@ function viewPaymentProof(orderId) {
         modal.innerHTML = `
             <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-96 overflow-auto" onclick="event.stopPropagation()">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Payment Proof - #${order.orderNumber}</h2>
-                    <button onclick="this.closest('.fixed').remove()" class="text-2xl">✕</button>
+                    <h2 class="text-2xl font-bold">Payment Proof</h2>
+                    <button onclick="this.closest('.fixed').remove()" class="text-2xl cursor-pointer">✕</button>
                 </div>
                 <div class="mb-4">
-                    <p class="text-sm text-gray-600">Transaction: <span class="font-bold">${order.transactionId}</span></p>
+                    <p class="text-sm text-gray-600">Order: <span class="font-bold">#${order.orderNumber}</span></p>
+                    <p class="text-sm text-gray-600">UTR: <span class="font-bold">${order.transactionId}</span></p>
                     <p class="text-sm text-gray-600">Amount: <span class="font-bold">₹${order.totalAmount}</span></p>
                 </div>
                 <img src="${order.paymentScreenshot}" alt="Payment proof" class="w-full rounded-xl border-2 border-gray-300">
@@ -1122,76 +1111,15 @@ function viewPaymentProof(orderId) {
 }
 
 // ========================================
-// SET DELIVERY TIME
+// AUTO-REFRESH
 // ========================================
 
-async function setDeliveryTime(orderId) {
-    const deliveryTime = prompt('Enter delivery time (e.g., 30 mins, 45 mins):');
-    
-    if (!deliveryTime) return;
-    
-    console.log('⏰ Setting delivery time:', deliveryTime);
-    
-    try {
-        await db.collection('orders').doc(orderId).update({
-            deliveryTime: deliveryTime,
-            status: 'preparing'
-        });
-        
-        console.log('✅ Delivery time set');
-        alert('✅ Delivery time: ' + deliveryTime);
+setInterval(() => {
+    const ordersTab = document.getElementById('ordersTab');
+    if (ordersTab && !ordersTab.classList.contains('hidden')) {
+        console.log('🔄 Auto-refreshing orders...');
         loadOrders();
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        alert('Error: ' + error.message);
     }
-}
+}, 30000);
 
-// ========================================
-// UPDATE ORDER STATUS
-// ========================================
-
-async function updateOrderStatus(orderId) {
-    const statuses = ['verified', 'preparing', 'out_for_delivery', 'delivered'];
-    
-    try {
-        const doc = await db.collection('orders').doc(orderId).get();
-        const current = doc.data().status;
-        
-        const currentIndex = statuses.indexOf(current);
-        const nextIndex = (currentIndex + 1) % statuses.length;
-        const nextStatus = statuses[nextIndex];
-        
-        const statusText = {
-            'verified': '✅ Verified',
-            'preparing': '👨‍🍳 Preparing',
-            'out_for_delivery': '🚗 Out for Delivery',
-            'delivered': '🎉 Delivered'
-        };
-        
-        console.log('📋 Updating status to:', nextStatus);
-        
-        await db.collection('orders').doc(orderId).update({
-            status: nextStatus,
-            updatedAt: new Date().toISOString()
-        });
-        
-        console.log('✅ Status updated');
-        alert('✅ Status: ' + statusText[nextStatus]);
-        loadOrders();
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        alert('Error: ' + error.message);
-    }
-}
-
-// ========================================
-// AUTO-LOAD ORDERS WHEN ORDERS TAB CLICKED
-// ========================================
-
-// Add this to your tab click handlers:
-// When Orders tab is clicked, call: loadOrders()
-
-console.log('✅ Orders module loaded - add loadOrders() call to Orders tab click handler');
+console.log('✅ Organized orders loaded');
