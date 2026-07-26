@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Shreevari Snacks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- LEAFLET - 100% FREE! No API Key Needed! -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <style>
+        #mapContainer {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .location-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-black text-orange-600">🍽️ Shreevari Snacks</h1>
+            <nav class="flex gap-6">
+                <a href="index.html" class="text-gray-700 hover:text-orange-600">Home</a>
+                <a href="menu.html" class="text-gray-700 hover:text-orange-600">Menu</a>
+                <a href="profile.html" class="text-gray-700 hover:text-orange-600">Profile</a>
+                <button onclick="logout()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        
+        <!-- Order Summary -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4">📦 Order Summary</h2>
+            <div id="cartSummary" class="space-y-3 mb-4 pb-4 border-b">
+                <!-- Cart items appear here -->
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="text-right">
+                    <p class="text-gray-600">Subtotal:</p>
+                    <p class="text-gray-600">Delivery Charge:</p>
+                    <p class="text-xl font-bold text-orange-600">Total:</p>
+                </div>
+                <div class="text-right">
+                    <p id="subtotal" class="text-gray-900 font-bold">₹0</p>
+                    <p id="delivery" class="text-gray-900 font-bold">₹0</p>
+                    <p id="total" class="text-2xl font-black text-orange-600">₹0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Details -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4">📋 Customer Details</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <input type="text" id="customerName" placeholder="Full Name" class="border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-600" required>
+                <input type="email" id="customerEmail" placeholder="Email" class="border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-600" required>
+                <input type="tel" id="customerPhone" placeholder="Phone" class="border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-600" required>
+                <input type="text" id="flatNumber" placeholder="Flat/House No." class="border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-600" required>
+            </div>
+        </div>
+
+        <!-- FREE LOCATION PICKER WITH LEAFLET -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 location-section">
+            <h2 class="text-2xl font-bold mb-2 flex items-center">
+                📍 Delivery Location (100% FREE)
+            </h2>
+            <p class="text-orange-100 text-sm mb-4">✅ No API costs - Uses OpenStreetMap</p>
+            
+            <div class="bg-white bg-opacity-95 rounded-xl overflow-hidden mb-4">
+                <div id="mapContainer"></div>
+            </div>
+            
+            <div class="bg-white bg-opacity-95 rounded-xl p-4">
+                <p class="text-gray-600 text-sm font-semibold mb-2">
+                    👆 Click on the map to select your location OR use the blue button
+                </p>
+                <p class="text-gray-600 text-sm">💡 You can drag the blue marker to adjust the exact location</p>
+            </div>
+            
+            <!-- Selected Location Info -->
+            <div id="selectedLocationInfo"></div>
+        </div>
+
+        <!-- Payment Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-6">💳 Payment Details</h2>
+            
+            <!-- UPI ID Display -->
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-2xl p-6 mb-6 text-center">
+                <p class="text-sm text-gray-600 font-semibold mb-3">📱 Send Money via UPI</p>
+                <div class="bg-white rounded-xl p-4 inline-block mb-4">
+                    <p class="text-2xl font-black text-green-600">9972199255@okbizaxis</p>
+                </div>
+                <p class="text-gray-700 font-bold">Amount: ₹<span id="upiAmount">0</span></p>
+                <p class="text-xs text-gray-600 mt-2">Use any UPI app (Google Pay, PhonePe, Paytm, etc.)</p>
+            </div>
+
+            <!-- Screenshot Upload -->
+            <div class="bg-blue-50 border-2 border-blue-400 rounded-xl p-6 mb-6">
+                <p class="text-gray-700 font-bold mb-3">📸 Step 1: Upload Payment Screenshot</p>
+                <input type="file" id="paymentScreenshot" accept="image/*" class="block w-full border-2 border-dashed border-blue-400 rounded-lg p-4 cursor-pointer" required>
+                <div id="screenshotPreview" class="mt-4"></div>
+            </div>
+
+            <!-- Transaction ID -->
+            <div class="bg-purple-50 border-2 border-purple-400 rounded-xl p-6 mb-6">
+                <p class="text-gray-700 font-bold mb-3">🔐 Step 2: Enter Transaction ID / UTR</p>
+                <input type="text" id="transactionId" placeholder="10-digit UTR number from payment receipt" maxlength="20" class="w-full border-2 border-purple-400 rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600">
+                <p class="text-xs text-gray-600 mt-2">Find this in your payment confirmation message</p>
+            </div>
+        </div>
+
+        <!-- Place Order Button -->
+        <button onclick="placeOrder()" class="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-black py-4 px-6 rounded-2xl text-xl transition shadow-lg">
+            🎉 PLACE ORDER & PAY
+        </button>
+
+        <p class="text-center text-gray-600 text-sm mt-4">
+            By placing order, you agree to our terms & conditions
+        </p>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="cart.js"></script>
+    <script src="location-picker-SATELLITE.js"></script>
+    
+    <script>
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            waitForFirebase(() => {
+                loadCartSummary();
+                initializeLocationPicker();
+                loadCustomerDetails();
+            });
+        });
+
+        // Load cart summary
+        function loadCartSummary() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const summary = document.getElementById('cartSummary');
+            let subtotal = 0;
+
+            if (cart.length === 0) {
+                summary.innerHTML = '<p class="text-gray-500">Your cart is empty</p>';
+                return;
+            }
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+                summary.innerHTML += `
+                    <div class="flex justify-between">
+                        <p class="text-gray-700">${item.quantity}x ${item.name}</p>
+                        <p class="font-bold">₹${itemTotal}</p>
+                    </div>
+                `;
+            });
+
+            updateOrderTotal(subtotal);
+        }
+
+        // Load customer details
+        function loadCustomerDetails() {
+            if (auth.currentUser) {
+                db.collection('customers').doc(auth.currentUser.uid).get().then(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        document.getElementById('customerName').value = data.name || '';
+                        document.getElementById('customerEmail').value = data.email || '';
+                        document.getElementById('customerPhone').value = data.phone || '';
+                    }
+                });
+            }
+        }
+
+        // Update order total
+        function updateOrderTotal(subtotal) {
+            const distance = selectedLocation.distance || 0;
+            const deliveryCharge = calculateDeliveryCharge(distance);
+            const total = subtotal + deliveryCharge;
+
+            document.getElementById('subtotal').textContent = '₹' + subtotal;
+            document.getElementById('delivery').textContent = '₹' + deliveryCharge;
+            document.getElementById('total').textContent = '₹' + total;
+            document.getElementById('upiAmount').textContent = total;
+        }
+
+        // Calculate delivery charge
+        function calculateDeliveryCharge(distance) {
+            if (distance <= 3) return 20;
+            if (distance <= 5) return 40;
+            if (distance <= 7) return 60;
+            if (distance <= 10) return 80;
+            return 0;
+        }
+
+        // Handle screenshot upload
+        document.getElementById('paymentScreenshot').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    alert('❌ Please select an image file');
+                    this.value = '';
+                    return;
+                }
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('❌ Image size should be less than 5MB');
+                    this.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('screenshotPreview').innerHTML = `
+                        <img src="${event.target.result}" alt="Payment screenshot" class="w-40 h-40 object-cover rounded-lg border-2 border-blue-400">
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Place order
+        async function placeOrder() {
+            const location = getSelectedLocation();
+            if (!location) return;
+
+            const name = document.getElementById('customerName').value.trim();
+            const email = document.getElementById('customerEmail').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+            const screenshot = document.getElementById('paymentScreenshot').files[0];
+            const transactionId = document.getElementById('transactionId').value.trim();
+            const flatNumber = document.getElementById('flatNumber').value.trim();
+
+            // Validation
+            if (!name || !email || !phone || !flatNumber) {
+                alert('❌ Please fill all customer details');
+                return;
+            }
+
+            if (!screenshot) {
+                alert('❌ Please upload payment screenshot');
+                return;
+            }
+
+            if (!transactionId || transactionId.length < 10) {
+                alert('❌ Please enter valid transaction ID (10+ digits)');
+                return;
+            }
+
+            try {
+                // Convert screenshot to base64
+                const base64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(screenshot);
+                });
+
+                const cart = JSON.parse(localStorage.getItem('cart')) || [];
+                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const deliveryCharge = calculateDeliveryCharge(location.distance);
+                const total = subtotal + deliveryCharge;
+
+                const orderNumber = 'ORD' + Date.now();
+
+                const orderData = {
+                    userId: auth.currentUser?.uid || 'guest',
+                    customerName: name,
+                    customerEmail: email,
+                    phone: phone,
+                    address: flatNumber + ', Area near coordinates',
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    distance: location.distance,
+                    orderItems: cart,
+                    subtotal: subtotal,
+                    deliveryCharge: deliveryCharge,
+                    totalAmount: total,
+                    transactionId: transactionId,
+                    paymentScreenshot: base64,
+                    paymentMethod: 'upi',
+                    status: 'pending_verification',
+                    paymentVerified: false,
+                    orderNumber: orderNumber,
+                    createdAt: new Date().toISOString()
+                };
+
+                await db.collection('orders').add(orderData);
+
+                alert('✅ Order placed successfully!\nOrder #' + orderNumber + '\n\nWe will verify your payment shortly.');
+                
+                localStorage.removeItem('cart');
+                window.location.href = 'profile.html';
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error placing order: ' + error.message);
+            }
+        }
+
+        // Watch location changes
+        setInterval(() => {
+            if (selectedLocation.distance !== null) {
+                const cart = JSON.parse(localStorage.getItem('cart')) || [];
+                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                updateOrderTotal(subtotal);
+            }
+        }, 1000);
+    </script>
+
+</body>
+</html>
